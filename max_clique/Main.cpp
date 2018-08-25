@@ -8,6 +8,7 @@
 #include <random>
 #include <tuple>
 #include <iostream>
+#include <stdio.h>
 #include <time.h>
 
 using namespace std;
@@ -152,6 +153,14 @@ void updateTabu(set<int> *tabu_set, map<int, int> *tabu_list) {
 	}
 }
 
+string printClique(set<int> currBest, set<int> clique, vector<vector<bool>> graph, long long unimprovedCtr, long long iterationCtr) {
+	return "size: " + to_string(clique.size())
+		+ ", isClique: " + (isClique(clique, graph) ? "true" : "false")
+		+ ", currBest_size: " + to_string(currBest.size())
+		+ ", unimproved: " + to_string(unimprovedCtr)
+		+ ", iteration: " + to_string(iterationCtr);
+}
+
 set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, long long maxIterations) {
 	long long iterationCtr = 0;
 	set<int> currMaxClique;
@@ -199,18 +208,18 @@ set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, lo
 			if (s.size() > localBest.size()) {
 				unimprovedCtr = 0;
 				localBest = s;
-				cout << "Found new local best: " << localBest.size() << endl;
+				cout << "Found new local best: " << printClique(currMaxClique, localBest, graph, unimprovedCtr, iterationCtr) << endl;
 			}
 		}
 		if (localBest.size() > currMaxClique.size()) {
 			currMaxClique = localBest;
-			cout << "Found new currMax: " << currMaxClique.size() << " isClique: " << (isClique(currMaxClique, graph) ? "true" : "false")<< endl;
+			cout << "Found new currMax: " << printClique(currMaxClique, currMaxClique, graph, unimprovedCtr, iterationCtr) << endl;
 			vector<int> currMaxList(currMaxClique.begin(), currMaxClique.end());
-			cout << "Clique: ";
+			cout << "Best Clique So Far: [";
 			for (int i : currMaxList) {
 				cout << i << " ";
 			}
-			cout << endl;
+			cout << "]" << endl;
 		}
 	}
 	return currMaxClique;
@@ -220,7 +229,7 @@ int main() {
 	cout << "start " << endl;
 	vector<vector<bool>> adjacencyMatrix = fromInputFile("MANN_a81.clq");
 	cout << "input read " << endl;
-	set<int> maxClique = approxMaxClique(adjacencyMatrix, 4000, 1000000);
+	set<int> maxClique = approxMaxClique(adjacencyMatrix, 4, 1000000);
 	cout << "maxClique: " << maxClique.size() << " isClique: " << (isClique(maxClique, adjacencyMatrix) ? "true" : "false") << endl;
 	char l;
 	cin >> l;
