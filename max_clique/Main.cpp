@@ -3,8 +3,11 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <map>
 #include <set>
 #include <random>
+#include <tuple>
+#include <iostream>
 #include <time.h>
 
 using namespace std;
@@ -82,8 +85,131 @@ set<int> getInitialSolution(vector<vector<bool>> adj) {
 	return solution;
 }
 
+set<int> getAddSet(set<int> sol, vector<vector<bool>> graph, set<int> tabu_set) {
+	set<int> addSet;
+	vector<int> solList(sol.begin(), sol.end());
+	for (int i = 1; i < graph.size(); i++) {
+		if (sol.count(i) == 0 && tabu_set.count(i) == 0) {
+			bool connected = true;
+			for (int j = 0; j < solList.size(); j++) {
+				connected = connected && graph[i][solList[j]];
+			}
+			if (connected) {
+				addSet.insert(i);
+			}
+		}
+	}
+	return addSet;
+}
+
+set<tuple<int,int>> getSwapSet(set<int> sol, vector<vector<bool>> graph, set<int> tabu_set) {
+	set<tuple<int,int>> swapSet;
+	for (int swapIn = 1; swapIn < graph.size(); swapIn++) {
+		if (sol.count(swapIn) == 0 && tabu_set.count(swapIn)) {
+			int connected = 0;
+			int swapOut = -1;
+			vector<int> solList(sol.begin(), sol.end());
+			for (int j = 0; j < solList.size(); j++) {
+				if (graph[swapIn][solList[j]]) {
+					connected++;
+				}
+				else {
+					swapOut = solList[j];
+				}
+			}
+			if (connected == sol.size() - 1) {
+				swapSet.insert(tuple<int,int>(swapIn, swapOut));
+			}
+		}
+	}
+	return swapSet;
+}
+
+void updateTabu(set<int> *tabu_set, map<int, int> *tabu_list) {
+	vector<int> tabu(tabu_set->begin(), tabu_set->end());
+	for (int i = 0; i < tabu.size(); i++) {
+		(&tabu_list)[tabu[i]]--;
+		if ((&tabu_list)[tabu[i]] <= 0) {
+			tabu_set->erase(tabu[i]);
+		}
+	}
+}
+
+set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, long long maxIterations) {
+	long long iterationCtr = 0;
+	set<int> currMaxClique;
+	random_device rd;
+	mt19937 mersenneTwister(rd());
+	while (iterationCtr < maxIterations) {
+		set<int> s = getInitialSolution(graph);
+		set<int> tabu_set;
+		map<int, int> tabu_list;
+		long long unimprovedCtr = 0;
+		set<int> localBest = s;
+		while (unimprovedCtr < unimprovedMax) {
+			set<int> add = getAddSet(s, graph, tabu_set);
+			set<tuple<int,int>> swap = getSwapSet(s, graph, tabu_set);
+			if (add.size() > 0) {
+				uniform_int_distribution<int> addDist(0, add.size() - 1);
+				int randomAdd = addDist(mersenneTwister);
+				vector<int> addList(add.begin(), add.end());
+				s.insert(addList[randomAdd]);
+			}
+			else if (swap.size() > 0) {
+				uniform_int_distribution<int> swapDist(0, swap.size() - 1);
+				int randomSwap = swapDist(mersenneTwister);
+				vector<tuple<int, int>> swapList(swap.begin(), swap.end());
+				int swapIn = get<0>(swapList[randomSwap]);
+				int swapOut = get<1>(swapList[randomSwap]);
+				s.insert(swapIn);
+				s.erase(swapOut);
+				tabu_set.insert(swapOut);
+				uniform_int_distribution<int> tabuTimer(1, swap.size());
+				tabu_list[swapOut] = tabuTimer(mersenneTwister) + 7;
+			}
+			else {
+				uniform_int_distribution<int> deleteDist(0, s.size() - 1);
+				int randomDelete = deleteDist(mersenneTwister);
+				vector<int> sList(s.begin(), s.end());
+				int deleteVertex = sList[randomDelete];
+				s.erase(deleteVertex);
+				tabu_set.insert(deleteVertex);
+				tabu_list[deleteVertex] = 7;
+			}
+			unimprovedCtr++;
+			iterationCtr++;
+			updateTabu(&tabu_set, &tabu_list);
+			if (s.size() > localBest.size()) {
+				unimprovedCtr = 0;
+				localBest = s;
+				cout << "Found new local best: " << localBest.size() << endl;
+			}
+		}
+		if (localBest.size() > currMaxClique.size()) {
+			currMaxClique = localBest;
+			cout << "Found new currMax: " << currMaxClique.size() << endl;
+		}
+	}
+	return currMaxClique;
+}
+
+bool isClique(set<int> clique, vector<vector<bool>> adj) {
+	vector<int> cliqueList(clique.begin(), clique.end());
+	for (int i = 0; i < cliqueList.size(); i++) {
+		for (int j = 0; j < cliqueList.size(); j++) {
+			if (i != j) {
+				if (!adj[cliqueList[i]][cliqueList[j]]) {
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+}
+
 int main() {
 	vector<vector<bool>> adjacencyMatrix = fromInputFile("input.in");
-	set<int> s = getInitialSolution(adjacencyMatrix);
+	set<int> maxClique = approxMaxClique(adjacencyMatrix, 400, 10000);
+	cout << "maxClique: " << maxClique.size() << " isClique: " << (isClique(maxClique, adjacencyMatrix) ? "true" : "false") << endl;
 	return 0;
 }
