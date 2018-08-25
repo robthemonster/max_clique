@@ -12,6 +12,21 @@
 
 using namespace std;
 
+
+bool isClique(set<int> clique, vector<vector<bool>> adj) {
+	vector<int> cliqueList(clique.begin(), clique.end());
+	for (int i = 0; i < cliqueList.size(); i++) {
+		for (int j = 0; j < cliqueList.size(); j++) {
+			if (i != j) {
+				if (!adj[cliqueList[i]][cliqueList[j]]) {
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+}
+
 vector<vector<bool>> fromInputFile(string filename) {
 	ifstream inputFile;
 	inputFile.open(filename);
@@ -93,6 +108,9 @@ set<int> getAddSet(set<int> sol, vector<vector<bool>> graph, set<int> tabu_set) 
 			bool connected = true;
 			for (int j = 0; j < solList.size(); j++) {
 				connected = connected && graph[i][solList[j]];
+				if (!connected) {
+					break;
+				}
 			}
 			if (connected) {
 				addSet.insert(i);
@@ -105,7 +123,7 @@ set<int> getAddSet(set<int> sol, vector<vector<bool>> graph, set<int> tabu_set) 
 set<tuple<int,int>> getSwapSet(set<int> sol, vector<vector<bool>> graph, set<int> tabu_set) {
 	set<tuple<int,int>> swapSet;
 	for (int swapIn = 1; swapIn < graph.size(); swapIn++) {
-		if (sol.count(swapIn) == 0 && tabu_set.count(swapIn)) {
+		if (sol.count(swapIn) == 0 && tabu_set.count(swapIn) == 0) {
 			int connected = 0;
 			int swapOut = -1;
 			vector<int> solList(sol.begin(), sol.end());
@@ -128,8 +146,8 @@ set<tuple<int,int>> getSwapSet(set<int> sol, vector<vector<bool>> graph, set<int
 void updateTabu(set<int> *tabu_set, map<int, int> *tabu_list) {
 	vector<int> tabu(tabu_set->begin(), tabu_set->end());
 	for (int i = 0; i < tabu.size(); i++) {
-		(&tabu_list)[tabu[i]]--;
-		if ((&tabu_list)[tabu[i]] <= 0) {
+		tabu_list->at(tabu[i]) = tabu_list->at(tabu[i]) - 1;
+		if (tabu_list->at(tabu[i]) <= 0) {
 			tabu_set->erase(tabu[i]);
 		}
 	}
@@ -187,29 +205,23 @@ set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, lo
 		}
 		if (localBest.size() > currMaxClique.size()) {
 			currMaxClique = localBest;
-			cout << "Found new currMax: " << currMaxClique.size() << endl;
+			cout << "Found new currMax: " << currMaxClique.size() << " isClique: " << (isClique(currMaxClique, graph) ? "true" : "false")<< endl;
+			vector<int> currMaxList(currMaxClique.begin(), currMaxClique.end());
+			cout << "Clique: ";
+			for (int i : currMaxList) {
+				cout << i << " ";
+			}
+			cout << endl;
 		}
 	}
 	return currMaxClique;
 }
 
-bool isClique(set<int> clique, vector<vector<bool>> adj) {
-	vector<int> cliqueList(clique.begin(), clique.end());
-	for (int i = 0; i < cliqueList.size(); i++) {
-		for (int j = 0; j < cliqueList.size(); j++) {
-			if (i != j) {
-				if (!adj[cliqueList[i]][cliqueList[j]]) {
-					return false;
-				}
-			}
-		}
-	}
-	return true;
-}
-
 int main() {
-	vector<vector<bool>> adjacencyMatrix = fromInputFile("input.in");
-	set<int> maxClique = approxMaxClique(adjacencyMatrix, 400, 10000);
+	vector<vector<bool>> adjacencyMatrix = fromInputFile("c-fat500-5.clq");
+	set<int> maxClique = approxMaxClique(adjacencyMatrix, 4000, 100000000);
 	cout << "maxClique: " << maxClique.size() << " isClique: " << (isClique(maxClique, adjacencyMatrix) ? "true" : "false") << endl;
+	char l;
+	cin >> l;
 	return 0;
 }
