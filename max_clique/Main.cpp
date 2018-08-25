@@ -205,21 +205,25 @@ set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, lo
 			iterationCtr++;
 			updateTabu(&tabu_set, &tabu_map);
 			if (s.size() > localBest.size()) {
-				cout << "Unimproved ctr: " << unimprovedCtr << endl;
+				string outString;
+				outString += "Unimproved: " + to_string(unimprovedCtr - 1) + "\n";
 				unimprovedCtr = 0;
 				localBest = s;
-				cout << "Found new local best: " << printClique(currMaxClique, localBest, graph, unimprovedCtr, iterationCtr) << endl;
+				outString += "Found new local best: " + printClique(currMaxClique, localBest, graph, unimprovedCtr, iterationCtr) + "\n";
+				cout << outString;
 			}
 		}
 		if (localBest.size() > currMaxClique.size()) {
 			currMaxClique = localBest;
-			cout << "Found new currMax: " << printClique(currMaxClique, currMaxClique, graph, unimprovedCtr, iterationCtr) << endl;
+			string outString;
+			outString += "Found new currMax: " + printClique(currMaxClique, currMaxClique, graph, unimprovedCtr, iterationCtr) + "\n";
 			vector<int> currMaxList(currMaxClique.begin(), currMaxClique.end());
-			cout << "Best Clique So Far: [";
+			outString += "Best Clique So Far: [";
 			for (int i : currMaxList) {
-				cout << i << " ";
+				outString += to_string(i) + " ";
 			}
-			cout << "]" << endl;
+			outString += "]\n";
+			cout << outString;
 		}
 	}
 	return currMaxClique;
@@ -227,9 +231,9 @@ set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, lo
 
 int main() {
 	cout << "start " << endl;
-	vector<vector<bool>> adjacencyMatrix = fromInputFile("p_hat1500-3.clq");
+	vector<vector<bool>> adjacencyMatrix = fromInputFile("MANN_a81.clq");
 	cout << "input read " << endl;
-	set<int> maxClique = approxMaxClique(adjacencyMatrix, 100, 1000000);
+	set<int> maxClique = approxMaxClique(adjacencyMatrix, 4000, 1000000);
 	cout << "maxClique: " << maxClique.size() << " isClique: " << (isClique(maxClique, adjacencyMatrix) ? "true" : "false") << endl;
 	char l;
 	cin >> l;
