@@ -205,12 +205,10 @@ set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, lo
 			iterationCtr++;
 			updateTabu(&tabu_set, &tabu_map);
 			if (s.size() > localBest.size()) {
+				cout << "Unimproved ctr: " << unimprovedCtr << endl;
 				unimprovedCtr = 0;
 				localBest = s;
 				cout << "Found new local best: " << printClique(currMaxClique, localBest, graph, unimprovedCtr, iterationCtr) << endl;
-			}
-			else {
-				cout << "Unimproved ctr: " << unimprovedCtr << endl;
 			}
 		}
 		if (localBest.size() > currMaxClique.size()) {
