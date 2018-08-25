@@ -100,55 +100,54 @@ set<int> getInitialSolution(vector<vector<bool>> adj) {
 	return solution;
 }
 
-set<int> getAddSet(set<int> sol, vector<vector<bool>> graph, set<int> tabu_set) {
-	set<int> addSet;
-	vector<int> solList(sol.begin(), sol.end());
+vector<int> getAddList(set<int> sol, vector<vector<bool>> graph, set<int> tabu_set) {
+	vector<int> addList;
 	for (int i = 1; i < graph.size(); i++) {
 		if (sol.count(i) == 0 && tabu_set.count(i) == 0) {
 			bool connected = true;
-			for (int j = 0; j < solList.size(); j++) {
-				connected = connected && graph[i][solList[j]];
+			for (set<int>::iterator it = sol.begin(); it != sol.end(); it++) {
+				connected = connected && graph[i][*it];
 				if (!connected) {
 					break;
 				}
 			}
 			if (connected) {
-				addSet.insert(i);
+				addList.push_back(i);
 			}
 		}
 	}
-	return addSet;
+	return addList;
 }
 
-set<tuple<int,int>> getSwapSet(set<int> sol, vector<vector<bool>> graph, set<int> tabu_set) {
-	set<tuple<int,int>> swapSet;
+vector<tuple<int, int>> getSwapList(set<int> sol, vector<vector<bool>> graph, set<int> tabu_set) {
+	vector<tuple<int, int>> swapList;
 	for (int swapIn = 1; swapIn < graph.size(); swapIn++) {
 		if (sol.count(swapIn) == 0 && tabu_set.count(swapIn) == 0) {
 			int connected = 0;
 			int swapOut = -1;
-			vector<int> solList(sol.begin(), sol.end());
-			for (int j = 0; j < solList.size(); j++) {
-				if (graph[swapIn][solList[j]]) {
+			for (set<int>::iterator it = sol.begin(); it != sol.end(); it++) {
+				if (graph[swapIn][*it]) {
 					connected++;
 				}
 				else {
-					swapOut = solList[j];
+					swapOut = *it;
 				}
 			}
 			if (connected == sol.size() - 1) {
-				swapSet.insert(tuple<int,int>(swapIn, swapOut));
+				swapList.push_back(tuple<int, int>(swapIn, swapOut));
 			}
 		}
 	}
-	return swapSet;
+	return swapList;
 }
 
-void updateTabu(set<int> *tabu_set, map<int, int> *tabu_list) {
+void updateTabu(set<int> *tabu_set, map<int, int> *tabu_map) {
 	vector<int> tabu(tabu_set->begin(), tabu_set->end());
 	for (int i = 0; i < tabu.size(); i++) {
-		tabu_list->at(tabu[i]) = tabu_list->at(tabu[i]) - 1;
-		if (tabu_list->at(tabu[i]) <= 0) {
+		tabu_map->at(tabu[i]) = tabu_map->at(tabu[i]) - 1;
+		if (tabu_map->at(tabu[i]) <= 0) {
 			tabu_set->erase(tabu[i]);
+			tabu_map->erase(tabu[i]);
 		}
 	}
 }
@@ -169,46 +168,49 @@ set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, lo
 	while (iterationCtr < maxIterations) {
 		set<int> s = getInitialSolution(graph);
 		set<int> tabu_set;
-		map<int, int> tabu_list;
+		map<int, int> tabu_map;
 		long long unimprovedCtr = 0;
 		set<int> localBest = s;
 		while (unimprovedCtr < unimprovedMax) {
-			set<int> add = getAddSet(s, graph, tabu_set);
-			set<tuple<int,int>> swap = getSwapSet(s, graph, tabu_set);
+			vector<int> add = getAddList(s, graph, tabu_set);
 			if (add.size() > 0) {
 				uniform_int_distribution<int> addDist(0, add.size() - 1);
 				int randomAdd = addDist(mersenneTwister);
-				vector<int> addList(add.begin(), add.end());
-				s.insert(addList[randomAdd]);
-			}
-			else if (swap.size() > 0) {
-				uniform_int_distribution<int> swapDist(0, swap.size() - 1);
-				int randomSwap = swapDist(mersenneTwister);
-				vector<tuple<int, int>> swapList(swap.begin(), swap.end());
-				int swapIn = get<0>(swapList[randomSwap]);
-				int swapOut = get<1>(swapList[randomSwap]);
-				s.insert(swapIn);
-				s.erase(swapOut);
-				tabu_set.insert(swapOut);
-				uniform_int_distribution<int> tabuTimer(1, swap.size());
-				tabu_list[swapOut] = tabuTimer(mersenneTwister) + 7;
+				s.insert(add[randomAdd]);
 			}
 			else {
-				uniform_int_distribution<int> deleteDist(0, s.size() - 1);
-				int randomDelete = deleteDist(mersenneTwister);
-				vector<int> sList(s.begin(), s.end());
-				int deleteVertex = sList[randomDelete];
-				s.erase(deleteVertex);
-				tabu_set.insert(deleteVertex);
-				tabu_list[deleteVertex] = 7;
+				vector<tuple<int, int>> swap = getSwapList(s, graph, tabu_set);
+				if (swap.size() > 0) {
+					uniform_int_distribution<int> swapDist(0, swap.size() - 1);
+					int randomSwap = swapDist(mersenneTwister);
+					int swapIn = get<0>(swap[randomSwap]);
+					int swapOut = get<1>(swap[randomSwap]);
+					s.insert(swapIn);
+					s.erase(swapOut);
+					tabu_set.insert(swapOut);
+					uniform_int_distribution<int> tabuTimer(1, swap.size());
+					tabu_map[swapOut] = tabuTimer(mersenneTwister) + 7;
+				}
+				else {
+					uniform_int_distribution<int> deleteDist(0, s.size() - 1);
+					int randomDelete = deleteDist(mersenneTwister);
+					vector<int> sList(s.begin(), s.end());
+					int deleteVertex = sList[randomDelete];
+					s.erase(deleteVertex);
+					tabu_set.insert(deleteVertex);
+					tabu_map[deleteVertex] = 7;
+				}
 			}
 			unimprovedCtr++;
 			iterationCtr++;
-			updateTabu(&tabu_set, &tabu_list);
+			updateTabu(&tabu_set, &tabu_map);
 			if (s.size() > localBest.size()) {
 				unimprovedCtr = 0;
 				localBest = s;
 				cout << "Found new local best: " << printClique(currMaxClique, localBest, graph, unimprovedCtr, iterationCtr) << endl;
+			}
+			else {
+				cout << "Unimproved ctr: " << unimprovedCtr << endl;
 			}
 		}
 		if (localBest.size() > currMaxClique.size()) {
@@ -227,9 +229,9 @@ set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, lo
 
 int main() {
 	cout << "start " << endl;
-	vector<vector<bool>> adjacencyMatrix = fromInputFile("MANN_a81.clq");
+	vector<vector<bool>> adjacencyMatrix = fromInputFile("p_hat1500-3.clq");
 	cout << "input read " << endl;
-	set<int> maxClique = approxMaxClique(adjacencyMatrix, 4, 1000000);
+	set<int> maxClique = approxMaxClique(adjacencyMatrix, 100, 1000000);
 	cout << "maxClique: " << maxClique.size() << " isClique: " << (isClique(maxClique, adjacencyMatrix) ? "true" : "false") << endl;
 	char l;
 	cin >> l;
