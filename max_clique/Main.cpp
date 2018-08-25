@@ -12,7 +12,6 @@
 
 using namespace std;
 
-
 bool isClique(set<int> clique, vector<vector<bool>> adj) {
 	vector<int> cliqueList(clique.begin(), clique.end());
 	for (int i = 0; i < cliqueList.size(); i++) {
@@ -39,7 +38,7 @@ vector<vector<bool>> fromInputFile(string filename) {
 				stringstream stringStream(line);
 				string curr;
 				int ctr = 0;
-				while (getline(stringStream, curr, ' ')) {
+				while (stringStream >> curr) {
 					ctr++;
 					if (ctr == 3) {
 						numVertices = stoi(curr);
@@ -52,7 +51,7 @@ vector<vector<bool>> fromInputFile(string filename) {
 				string curr;
 				int ctr = 0;
 				int i, j;
-				while (getline(stringStream, curr, ' ')) {
+				while (stringStream >> curr) {
 					ctr++;
 					if (ctr == 2) {
 						i = stoi(curr);
@@ -218,8 +217,10 @@ set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, lo
 }
 
 int main() {
-	vector<vector<bool>> adjacencyMatrix = fromInputFile("c-fat500-5.clq");
-	set<int> maxClique = approxMaxClique(adjacencyMatrix, 4000, 100000000);
+	cout << "start " << endl;
+	vector<vector<bool>> adjacencyMatrix = fromInputFile("MANN_a81.clq");
+	cout << "input read " << endl;
+	set<int> maxClique = approxMaxClique(adjacencyMatrix, 4000, 1000000);
 	cout << "maxClique: " << maxClique.size() << " isClique: " << (isClique(maxClique, adjacencyMatrix) ? "true" : "false") << endl;
 	char l;
 	cin >> l;
