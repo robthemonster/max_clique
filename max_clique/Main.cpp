@@ -100,23 +100,35 @@ set<int> getInitialSolution(vector<vector<bool>> adj) {
 	return solution;
 }
 
-vector<int> getAddList(set<int> sol, vector<vector<bool>> graph, set<int> tabu_set) {
+tuple<vector<int>,vector<tuple<int,int>>> getAddSwapLists(set<int> sol, vector<vector<bool>> graph, set<int> tabu_set) {
 	vector<int> addList;
+	vector<tuple<int,int>> swapList;
 	for (int i = 1; i < graph.size(); i++) {
 		if (sol.count(i) == 0 && tabu_set.count(i) == 0) {
-			bool connected = true;
-			for (set<int>::iterator it = sol.begin(); it != sol.end(); it++) {
-				connected = connected && graph[i][*it];
-				if (!connected) {
-					break;
+			int connected = 0;
+			int disconnected = 0;
+			int swapOut = -1;
+			for (set<int>::iterator it = sol.begin(); it != sol.end(); ++it) {
+				if (graph[i][*it]) {
+					connected++;
+				}
+				else {
+					disconnected++;
+					swapOut = *it;
+					if (disconnected > 1) {
+						break;
+					}
 				}
 			}
-			if (connected) {
+			if (connected == sol.size()) {
 				addList.push_back(i);
+			}
+			else if (connected == sol.size() - 1) {
+				swapList.push_back(tuple<int, int>(i, swapOut));
 			}
 		}
 	}
-	return addList;
+	return tuple<vector<int>, vector<tuple<int,int>>>(addList, swapList);
 }
 
 vector<tuple<int, int>> getSwapList(set<int> sol, vector<vector<bool>> graph, set<int> tabu_set) {
@@ -176,14 +188,15 @@ set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, lo
 		long long unimprovedCtr = 0;
 		set<int> localBest = s;
 		while (unimprovedCtr < unimprovedMax) {
-			vector<int> add = getAddList(s, graph, tabu_set);
+			tuple<vector<int>, vector<tuple<int,int>>> addSwap = getAddSwapLists(s, graph, tabu_set);
+			vector<int> add = get<0>(addSwap);
 			if (add.size() > 0) {
 				uniform_int_distribution<int> addDist(0, add.size() - 1);
 				int randomAdd = addDist(mersenneTwister);
 				s.insert(add[randomAdd]);
 			}
 			else {
-				vector<tuple<int, int>> swap = getSwapList(s, graph, tabu_set);
+				vector<tuple<int, int>> swap = get<1>(addSwap);
 				if (swap.size() > 0) {
 					uniform_int_distribution<int> swapDist(0, swap.size() - 1);
 					int randomSwap = swapDist(mersenneTwister);
@@ -221,7 +234,7 @@ set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, lo
 			currMaxClique = localBest;
 			string outString;
 			outString += "Found new currMax: " + printClique(currMaxClique, currMaxClique, graph, unimprovedCtr, iterationCtr) + "\n";
-			outString += " isClique: " + isClique(currMaxClique, graph) ? "true" : "false";
+			outString += " isClique: " + (string)(isClique(currMaxClique, graph) ? "true" : "false") + "\n";
 			vector<int> currMaxList(currMaxClique.begin(), currMaxClique.end());
 			outString += "Best Clique So Far: [";
 			for (int i : currMaxList) {
@@ -236,7 +249,7 @@ set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, lo
 
 int main() {
 	cout << "start " << endl;
-	vector<vector<bool>> adjacencyMatrix = fromInputFile("p_hat1500-3.clq");
+	vector<vector<bool>> adjacencyMatrix = fromInputFile("MANN_a81.clq");
 	cout << "input read " << endl;
 	set<int> maxClique = approxMaxClique(adjacencyMatrix, 4000, 1000000);
 	cout << "maxClique: " << maxClique.size() << " isClique: " << (isClique(maxClique, adjacencyMatrix) ? "true" : "false") << endl;
