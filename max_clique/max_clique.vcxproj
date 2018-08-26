@@ -23,6 +23,7 @@
     <ProjectGuid>{94222B75-FA44-42F4-8A09-E4154D27803D}</ProjectGuid>
     <RootNamespace>maxclique</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <ProjectName>multi-neighborhood-tabu</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

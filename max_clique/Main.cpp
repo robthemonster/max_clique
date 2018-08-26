@@ -124,12 +124,17 @@ vector<tuple<int, int>> getSwapList(set<int> sol, vector<vector<bool>> graph, se
 	for (int swapIn = 1; swapIn < graph.size(); swapIn++) {
 		if (sol.count(swapIn) == 0 && tabu_set.count(swapIn) == 0) {
 			int connected = 0;
+			int notConnected = 0;
 			int swapOut = -1;
 			for (set<int>::iterator it = sol.begin(); it != sol.end(); it++) {
 				if (graph[swapIn][*it]) {
 					connected++;
 				}
 				else {
+					notConnected++;
+					if (notConnected > 1) {
+						break;
+					}
 					swapOut = *it;
 				}
 			}
@@ -154,7 +159,6 @@ void updateTabu(set<int> *tabu_set, map<int, int> *tabu_map) {
 
 string printClique(set<int> currBest, set<int> clique, vector<vector<bool>> graph, long long unimprovedCtr, long long iterationCtr) {
 	return "size: " + to_string(clique.size())
-		+ ", isClique: " + (isClique(clique, graph) ? "true" : "false")
 		+ ", currBest_size: " + to_string(currBest.size())
 		+ ", unimproved: " + to_string(unimprovedCtr)
 		+ ", iteration: " + to_string(iterationCtr);
@@ -217,6 +221,7 @@ set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, lo
 			currMaxClique = localBest;
 			string outString;
 			outString += "Found new currMax: " + printClique(currMaxClique, currMaxClique, graph, unimprovedCtr, iterationCtr) + "\n";
+			outString += " isClique: " + isClique(currMaxClique, graph) ? "true" : "false";
 			vector<int> currMaxList(currMaxClique.begin(), currMaxClique.end());
 			outString += "Best Clique So Far: [";
 			for (int i : currMaxList) {
@@ -231,7 +236,7 @@ set<int> approxMaxClique(vector<vector<bool>> graph, long long unimprovedMax, lo
 
 int main() {
 	cout << "start " << endl;
-	vector<vector<bool>> adjacencyMatrix = fromInputFile("MANN_a81.clq");
+	vector<vector<bool>> adjacencyMatrix = fromInputFile("p_hat1500-3.clq");
 	cout << "input read " << endl;
 	set<int> maxClique = approxMaxClique(adjacencyMatrix, 4000, 1000000);
 	cout << "maxClique: " << maxClique.size() << " isClique: " << (isClique(maxClique, adjacencyMatrix) ? "true" : "false") << endl;
