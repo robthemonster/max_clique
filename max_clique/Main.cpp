@@ -29,11 +29,10 @@ int numVertices;
 random_device rd;
 mt19937 mersenneTwister(rd());
 
-void setGraph(string);
+void parseGraphFromFile(string);
 void runHeuristic(long long, long long);
-void cleanGraph();
+void deallocateGraph();
 void setInitialSolution();
-void resetLists();
 void setAddAndSwapLists();
 void addRandom();
 void swapRandom();
@@ -42,7 +41,7 @@ void decrementTabu();
 string isBestAClique();
 
 int main() {
-	setGraph("p_hat500-1.clq");
+	parseGraphFromFile("p_hat500-1.clq");
 	runHeuristic(4000, 100000000);
 	cout << "Best solution found: " << bestSolutionSize << " isClique: " << isBestAClique() << endl;
 	cout << "[";
@@ -50,7 +49,7 @@ int main() {
 		cout << bestSolution[i] + " ";
 	}
 	cout << "]" << endl;
-	cleanGraph();
+	deallocateGraph();
 }
 
 string isBestAClique() {
@@ -71,7 +70,6 @@ void runHeuristic(long long maxUnimproved, long long maxIterations) {
 	long long iterationCtr = 0;
 	while (iterationCtr < maxIterations) {
 		setInitialSolution();
-		resetLists();
 		long long unimprovedCtr = 0;
 		while (unimprovedCtr < maxUnimproved) {
 			setAddAndSwapLists();
@@ -190,11 +188,6 @@ void setAddAndSwapLists() {
 	}
 }
 
-void resetLists() {
-	addListSize = 0;
-	swapListSize = 0;
-}
-
 void setInitialSolution() {
 	fill(tabuContains, tabuContains + numVertices + 1, false);
 	fill(solutionContains, solutionContains + numVertices + 1, false);
@@ -224,7 +217,7 @@ void setInitialSolution() {
 	} while (foundMore);
 }
 
-void setGraph(string filename) {
+void parseGraphFromFile(string filename) {
 	ifstream inputFile;
 	inputFile.open(filename);
 	string line;
@@ -278,7 +271,7 @@ void setGraph(string filename) {
 	}
 }
 
-void cleanGraph() {
+void deallocateGraph() {
 	for (int i = 0; i < numVertices + 1; i++) {
 		delete graph[i];
 	}
