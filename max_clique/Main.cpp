@@ -6,23 +6,23 @@
 
 using namespace std;
 
-bool **graph;
-int * localBest;
+bool **graph; //2d adj matrix
+int * localBest; //best solution in local search space
 int localBestSize = 0;
-int * bestSolution;
+int * bestSolution; //best solution so far
 int bestSolutionSize = 0;
-int *solution;
+int *solution; //current working solution
 int solutionSize = 0;
-bool * solutionContains;
-int * addList;
+bool * solutionContains; //map indicating whether a given vertex is contained in solution
+int * addList; //list of vertices to add to solution
 int addListSize = 0;
-int * swapList;
-int * swapOutList;
-int * swapOutIndexList;
+int * swapList; // list of vertices to swap into solution
+int * swapOutList; //correspecitng list of vertices to swap out
+int * swapOutIndexList; //index of the element to be swapped out of solution
 int swapListSize = 0;
-int * tabuList;
-int * tabuMap;
-bool * tabuContains;
+int * tabuList; //list of tabu vertices
+int * tabuMap; //corresponding map to the vertex number of a given tabu list entry
+bool * tabuContains; //map indicating whether a given vertex is contained in the tabu list
 int tabuListSize = 0;
 int numVertices;
 
