@@ -42,11 +42,11 @@ string isBestAClique();
 
 int main() {
 	parseGraphFromFile("p_hat500-1.clq");
-	runHeuristic(4000, 100000000);
+	runHeuristic(4000, 10000);
 	cout << "Best solution found: " << bestSolutionSize << " isClique: " << isBestAClique() << endl;
 	cout << "[";
 	for (int i = 0; i < bestSolutionSize; i++) {
-		cout << bestSolution[i] + " ";
+		cout << bestSolution[i] << " ";
 	}
 	cout << "]" << endl;
 	deallocateGraph();
