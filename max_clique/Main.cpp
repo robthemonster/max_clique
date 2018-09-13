@@ -19,10 +19,8 @@ int solutionSize = 0;
 long solutionWeight = 0;
 bool * solutionContains; //map indicating whether a given vertex is contained in solution
 int * addList; //list of vertices to add to solution
-int * addDeltas;
 int addListSize = 0;
 int * swapList; // list of vertices to swap into solution
-int * swapDeltas;
 int * swapOutList; //correspecitng list of vertices to swap out
 int * swapOutIndexList; //index of the element to be swapped out of solution
 int swapListSize = 0;
@@ -45,16 +43,13 @@ void parseGraphFromFile(string);
 void runHeuristic(long long, long long);
 void deallocateGraph();
 void setInitialSolution();
-void setAddAndSwapLists();
+void findNeighborhood();
 void selectBestDelta();
-void addRandom();
-void swapRandom();
-void removeRandom();
 void decrementTabu();
 string isBestAClique();
 
 int main() {
-	parseGraphFromFile("p_hat1500-3.clq");
+	parseGraphFromFile("MANN_a81.clq");
 	runHeuristic(4000, 100000000);
 	cout << "Best solution found: " << bestSolutionSize << " isClique: " << isBestAClique() << endl;
 	long weight = 0;
@@ -85,16 +80,14 @@ string isBestAClique() {
 }
 
 void runHeuristic(long long maxUnimproved, long long maxIterations) {
-	auto startTime = chrono::high_resolution_clock::now();
+	chrono::high_resolution_clock::time_point startTime = chrono::high_resolution_clock::now();
 	long long iterationCtr = 0;
 	while (iterationCtr < maxIterations) {
 		setInitialSolution();
 		long long unimprovedCtr = 0;
 		while (unimprovedCtr < maxUnimproved) {
-			setAddAndSwapLists();
-			
+			findNeighborhood();
 			selectBestDelta();
-
 			unimprovedCtr++;
 			iterationCtr++;
 			decrementTabu();
@@ -129,41 +122,6 @@ void decrementTabu() {
 			tabuListSize--;
 		}
 	}
-}
-
-void addRandom() {
-	uniform_int_distribution<int> dist(0, addListSize - 1);
-	int randomAddIndex = dist(mersenneTwister);
-	solution[solutionSize] = addList[randomAddIndex];
-	solutionSize++;
-	solutionContains[addList[randomAddIndex]] = true;
-}
-
-void swapRandom() {
-	uniform_int_distribution<int> dist(0, swapListSize - 1);
-	int randomSwapIndex = dist(mersenneTwister);
-	solution[swapOutIndexList[randomSwapIndex]] = swapList[randomSwapIndex];
-	uniform_int_distribution<int> tabuTimer(1, swapListSize);
-	int timer = tabuTimer(mersenneTwister);
-	tabuList[tabuListSize] = timer + 7;
-	tabuMap[tabuListSize] = swapOutList[randomSwapIndex];
-	tabuListSize++;
-	tabuContains[swapOutList[randomSwapIndex]] = true;
-	solutionContains[swapList[randomSwapIndex]] = true;
-	solutionContains[swapOutList[randomSwapIndex]] = false;
-	return;
-}
-
-void removeRandom() {
-	uniform_int_distribution<int> dist(0, solutionSize - 1);
-	int randomRemoveIndex = dist(mersenneTwister);
-	tabuList[tabuListSize] = 7;
-	tabuMap[tabuListSize] = solution[randomRemoveIndex];
-	tabuListSize++;
-	tabuContains[solution[randomRemoveIndex]] = true;
-	solutionContains[solution[randomRemoveIndex]] = false;
-	swap(solution[randomRemoveIndex], solution[solutionSize - 1]);
-	solutionSize--;
 }
 
 void selectBestDelta()
@@ -203,7 +161,7 @@ void selectBestDelta()
 	greatestDelta = INT8_MIN;
 }
 
-void setAddAndSwapLists() {
+void findNeighborhood() {
 	addListSize = 0, swapListSize = 0;
 	for (int i = 1; i <= numVertices; i++) {
 		int connected = 0;
@@ -212,18 +170,6 @@ void setAddAndSwapLists() {
 		int swapOutIndex = -1;
 		if (!tabuContains[i] && !solutionContains[i]) {
 			for (int j = 0; j < solutionSize; j++) {
-				int removeDelta = weights[solution[j]] * -1;
-				if (removeDelta > greatestDelta) {
-					greatestDelta = solution[j] * -1;
-					tiedDeltas[0] = j;
-					tiedDeltasNeighborhoods[0] = REMOVE;
-					tiedDeltasSize = 1;
-				}
-				else if (removeDelta == greatestDelta) {
-					tiedDeltas[tiedDeltasSize] = j;
-					tiedDeltasNeighborhoods[tiedDeltasSize] = REMOVE;
-					tiedDeltasSize++;
-				}
 				if (graph[i][solution[j]]) {
 					connected++;
 				}
@@ -270,6 +216,20 @@ void setAddAndSwapLists() {
 					tiedDeltasSize++;
 				}
 			} 
+		}
+	}
+	for (int i = 0; i < solutionSize; i++) {
+		int removeDelta = weights[solution[i]] * -1;
+		if (removeDelta > greatestDelta) {
+			greatestDelta = solution[i] * -1;
+			tiedDeltas[0] = i;
+			tiedDeltasNeighborhoods[0] = REMOVE;
+			tiedDeltasSize = 1;
+		}
+		else if (removeDelta == greatestDelta) {
+			tiedDeltas[tiedDeltasSize] = i;
+			tiedDeltasNeighborhoods[tiedDeltasSize] = REMOVE;
+			tiedDeltasSize++;
 		}
 	}
 }
@@ -361,6 +321,7 @@ void parseGraphFromFile(string filename) {
 			}
 		}
 	}
+	inputFile.close();
 }
 
 void deallocateGraph() {
