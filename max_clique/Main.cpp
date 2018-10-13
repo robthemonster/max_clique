@@ -212,8 +212,6 @@ int main(int argc, char **argv) {
 		bestSolutionSize = 0;
 		bestSolutionWeight = 0;
 	}
-	cout << "Average weight: " << (weightTotal / (double)NUM_ITERATIONS) << " Average time: " << chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - startTime).count() / NUM_ITERATIONS << "ms" //thats not how u get time u dumb
-		<< " Average Iteration: " << (iterationSum /(double)NUM_ITERATIONS) << " Successes: " << successes << endl;
 	printResultsToFile(fileName);
 	deallocateGraph();
 	char c;
@@ -262,13 +260,13 @@ void performLocalSearch(bool pathRelinkingMode)
 		if (selectBestDelta()) {
 			unimprovedCtr++;
 			decrementTabu();
+			iterationTotal++;
 			if (solutionWeight > localBestWeight) {
 				for (int i = 0; i < solutionSize; i++) {
 					localBest[i] = solution[i];
 				}
 				localBestSize = solutionSize;
 				localBestWeight = solutionWeight;
-				iterationTotal += unimprovedCtr;
 				
 				//if (pathRelinkingMode) {
 				//	unimprovedCtr = 0;
@@ -298,7 +296,7 @@ void performLocalSearch(bool pathRelinkingMode)
 					}
 				}*/
 			}
-			if (solutionWeight == bestKnown) {
+			if (!pathRelinkingMode && solutionWeight == bestKnown) {
 				break;
 			}
 		}
@@ -313,10 +311,10 @@ void performLocalSearch(bool pathRelinkingMode)
 		}
 		bestSolutionSize = localBestSize;
 		bestSolutionWeight = localBestWeight;
-		iterationTotal += unimprovedCtr;
 		solutionIterationCounts[currIt] = iterationTotal;
 		if (!pathRelinkingMode) {
 			auto diff = chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - startTime).count();
+			solutionTimeTaken[currIt] = diff;
 			if (bestSolutionWeight == bestKnown) {
 				return;
 			}
@@ -734,8 +732,8 @@ void printResultsToFile(string filename) {
 		output << "Weight: " << solutionWeights[i] << " Iterations: " << solutionIterationCounts[i] << " Size: " <<
 			solutionSizes[i] << " Time: " << solutionTimeTaken[i] << " isClique: " << (solutionWasClique[i] ? "true" : "false") << endl;
 	}
-	int averageWeight, tiedIterationAvg, successes, tiedSize;
-	averageWeight = tiedIterationAvg = successes = tiedSize = 0;
+	long averageWeight, tiedIterationAvg, successes, tiedSize, tiedAverageTimeSeconds;
+	tiedAverageTimeSeconds = averageWeight = tiedIterationAvg = successes = tiedSize = 0;
 	int best = -1;
 	int numTied = 0;
 	for (int i = 0; i < NUM_ITERATIONS; i++) {
@@ -747,6 +745,7 @@ void printResultsToFile(string filename) {
 		}
 		if (solutionWeights[i] == best) {
 			tiedIterationAvg += solutionIterationCounts[i];
+			tiedAverageTimeSeconds += solutionTimeTaken[i];
 			numTied++;
 		}
 	}
@@ -755,8 +754,10 @@ void printResultsToFile(string filename) {
 	}
 	tiedIterationAvg = (double(tiedIterationAvg)) / numTied;
 	averageWeight = (double(averageWeight)) / NUM_ITERATIONS;
+	tiedAverageTimeSeconds = (double(tiedAverageTimeSeconds)) / (numTied * 1000);
 	output << "Average Weight: " << averageWeight << " Successes: " << numTied <<
-		" Tied Size: " << tiedSize << " Tied iteration average: " << tiedIterationAvg << endl;
+		" Tied Size: " << tiedSize << " Tied iteration average: " << tiedIterationAvg <<
+		" Average Time (seconds): " << tiedAverageTimeSeconds << endl;
 	output.close();
 }
 
