@@ -51,12 +51,13 @@ int tabuListSize = 0;
 int numVertices;
 int weightMod;
 chrono::high_resolution_clock::time_point startTime;
+double startClock;
 long long iterationCtr;
 long long iterationTotal;
 long long solutionIterationCounts[NUM_ITERATIONS];
 long long solutionWeights[NUM_ITERATIONS];
 long long solutionSizes[NUM_ITERATIONS];
-long long solutionTimeTaken[NUM_ITERATIONS];
+double solutionTimeTaken[NUM_ITERATIONS];
 bool solutionWasClique[NUM_ITERATIONS];
 int currIt;
 int bestKnown;
@@ -234,6 +235,7 @@ bool isBestAClique() {
 void runHeuristic(long long maxUnimproved, long long maxIterations) {
 	iterationCtr = 0;
 	startTime = chrono::high_resolution_clock::now();
+	startClock = clock();
 	iterationTotal = 0;
 	bestSolutionSize = 0;
 	bestSolutionWeight = INT32_MIN;
@@ -313,7 +315,8 @@ void performLocalSearch(bool pathRelinkingMode)
 		bestSolutionWeight = localBestWeight;
 		solutionIterationCounts[currIt] = iterationTotal;
 		if (!pathRelinkingMode) {
-			auto diff = chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - startTime).count();
+			//long long diff = chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - startTime).count();
+			double diff = clock() - startClock;
 			solutionTimeTaken[currIt] = diff;
 			if (bestSolutionWeight == bestKnown) {
 				return;
@@ -514,7 +517,8 @@ void setInitialSolution() {
 	int randomVertex = getRandomInt(1, numVertices);
 	addToSolution(randomVertex);
 	while (addListSize > 0) {
-			addToSolution(addList[addListSize - 1]);
+		int randomAddIndex = getRandomInt(0, addListSize - 1);
+		addToSolution(addList[randomAddIndex]);
 	}
 }
 
@@ -732,7 +736,8 @@ void printResultsToFile(string filename) {
 		output << "Weight: " << solutionWeights[i] << " Iterations: " << solutionIterationCounts[i] << " Size: " <<
 			solutionSizes[i] << " Time: " << solutionTimeTaken[i] << " isClique: " << (solutionWasClique[i] ? "true" : "false") << endl;
 	}
-	long averageWeight, tiedIterationAvg, successes, tiedSize, tiedAverageTimeSeconds;
+	long long averageWeight, tiedIterationAvg, successes, tiedSize;
+	double tiedAverageTimeSeconds = 0;
 	tiedAverageTimeSeconds = averageWeight = tiedIterationAvg = successes = tiedSize = 0;
 	int best = -1;
 	int numTied = 0;
@@ -755,6 +760,7 @@ void printResultsToFile(string filename) {
 	tiedIterationAvg = (double(tiedIterationAvg)) / numTied;
 	averageWeight = (double(averageWeight)) / NUM_ITERATIONS;
 	tiedAverageTimeSeconds = (double(tiedAverageTimeSeconds)) / (numTied * 1000);
+	output << "Best soution weight found: " << best << endl;
 	output << "Average Weight: " << averageWeight << " Successes: " << numTied <<
 		" Tied Size: " << tiedSize << " Tied iteration average: " << tiedIterationAvg <<
 		" Average Time (seconds): " << tiedAverageTimeSeconds << endl;
