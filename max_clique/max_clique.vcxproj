@@ -117,6 +117,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="mnts_rob.cpp" />
+    <ClCompile Include="mnts_rob_pr.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="input.in" />

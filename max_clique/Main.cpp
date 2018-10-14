@@ -174,9 +174,9 @@ bool isBestAClique();
 //}
 
 int getRandomInt(int min, int max) {
-	//return min + (rand() % (max-min + 1));
-	uniform_int_distribution<int> dist(min, max);
-	return dist(mersenneTwister);
+	return min + (rand() % (max-min + 1));
+	//uniform_int_distribution<int> dist(min, max);
+	//return dist(mersenneTwister);
 }
 
 int main(int argc, char **argv) {
@@ -234,7 +234,7 @@ bool isBestAClique() {
 
 void runHeuristic(long long maxUnimproved, long long maxIterations) {
 	iterationCtr = 0;
-	startTime = chrono::high_resolution_clock::now();
+	//startTime = chrono::high_resolution_clock::now();
 	startClock = clock();
 	iterationTotal = 0;
 	bestSolutionSize = 0;
@@ -298,7 +298,7 @@ void performLocalSearch(bool pathRelinkingMode)
 					}
 				}*/
 			}
-			if (!pathRelinkingMode && solutionWeight == bestKnown) {
+			if (/*!pathRelinkingMode &&*/ solutionWeight == bestKnown) {
 				break;
 			}
 		}
@@ -314,14 +314,14 @@ void performLocalSearch(bool pathRelinkingMode)
 		bestSolutionSize = localBestSize;
 		bestSolutionWeight = localBestWeight;
 		solutionIterationCounts[currIt] = iterationTotal;
-		if (!pathRelinkingMode) {
+		//if (!pathRelinkingMode) {
 			//long long diff = chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - startTime).count();
 			double diff = clock() - startClock;
 			solutionTimeTaken[currIt] = diff;
 			if (bestSolutionWeight == bestKnown) {
 				return;
 			}
-		}
+		//}
 	}
 
 }
@@ -516,9 +516,11 @@ void setInitialSolution() {
 	addListSize = numVertices;
 	int randomVertex = getRandomInt(1, numVertices);
 	addToSolution(randomVertex);
+	iterationTotal++;
 	while (addListSize > 0) {
 		int randomAddIndex = getRandomInt(0, addListSize - 1);
 		addToSolution(addList[randomAddIndex]);
+		iterationTotal++;
 	}
 }
 
