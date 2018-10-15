@@ -43,8 +43,8 @@ using namespace std;
 	int **notConnected;
 	int *currSolution;
 	int currSolutionLength;
+	int *localBestSolution;
 	int numVerticesTimesSizeOfInt;
-	int tm2;
 	int *adders;
 	int *swappers;
 	int *weights;
@@ -57,8 +57,6 @@ using namespace std;
 	int currSolutionQuality;
 	int localBestSolutionQuality;
 	int *tiedCandidateIndex;
-	int *Tbest;
-	int *TTbest;
 	int bestKnownSolutionQuality;
 	int iterationSolutionWasFoundOn;
 	double starting_time, finishing_time, avg_time;
@@ -72,7 +70,30 @@ using namespace std;
 	int maxUnimproved;
 	int maxIterationsDividedByMaxUnimproved;
 	int weightMod;
-	//int TABUL0 = 5;
+
+
+	const int ELITE_SET_CAPACITY = 20;
+	int** eliteSet;
+	int eliteSetSize = 0;
+	int* eliteSetSizes;
+	int * eliteSetWeights;
+	int eliteSetMinWeight = INT32_MIN;
+
+	int * initialSolution;
+	int initialSolutionSize = 0;
+	int * guidingSolution;
+	int guidingSolutionSize = 0;
+	bool * guidingContains;
+
+	int * workingSolution;
+	int workingSolutionSize = 0;
+	bool * workingContains;
+
+	int * workingMinusGuiding;
+	int workingMinusGuidingSize = 0;
+	
+	int * guidingMinusWorking;
+	int guidingMinusWorkingSize = 0;
 
 
 	// section 0, initiaze
@@ -87,7 +108,6 @@ using namespace std;
 			exit(0);
 		}
 		char StrReading[100];
-		//Max_Vclique=300;
 		FIC >> StrReading;
 		if (FIC.eof())
 		{
@@ -117,10 +137,24 @@ using namespace std;
 				swapBuddy = new int[numVertices];
 				tiedCandidateIndex = new int[numVertices];
 				notConnected = new int*[numVertices];
+				eliteSet = new int*[ELITE_SET_CAPACITY];
+				eliteSetSizes = new int[ELITE_SET_CAPACITY];
+				eliteSetWeights = new int[ELITE_SET_CAPACITY];
 				currSolution = new int[2000];
-				Tbest = new int[numVertices];
-				TTbest = new int[numVertices];
+				localBestSolution = new int[2000];
 
+				initialSolution = new int[2000];
+				guidingSolution = new int[2000];
+				workingSolution = new int[2000];
+				workingMinusGuiding = new int[2000];
+				workingMinusGuiding = new int[2000];
+				workingContains = new bool[numVertices];
+				guidingContains = new bool[numVertices];
+							   			
+
+				for (int x = 0; x < ELITE_SET_CAPACITY; x++) {
+					eliteSet[x] = new int[numVertices];
+				}
 				for (int x = 0; x < numVertices; x++)
 				{
 					inCurrSolution[x] = x;
@@ -187,8 +221,6 @@ using namespace std;
 		{
 			weights[x] = (x + 1) % weightMod + 1;
 			swapBuddy[x] = 0;
-			//We[ x ] = 1;
-			//We[ x ] = ( rand() % 10 ) + 1;
 		}
 
 		FIC.close();
@@ -207,6 +239,8 @@ using namespace std;
 		memset(numOfVerticesInSolutionNotConnectedTo, 0, numVerticesTimesSizeOfInt);
 		memset(indices, 0, numVerticesTimesSizeOfInt);
 		memset(tabuin, 0, numVerticesTimesSizeOfInt);
+		memset(eliteSetSizes, 0, numVerticesTimesSizeOfInt);
+		eliteSetSize = 0;
 		for (i = 0; i < numVertices; i++)
 		{
 			adders[i] = i;
@@ -287,8 +321,6 @@ using namespace std;
 		{
 			k = randomInt(tiedCandidatesTabuLength);
 			k = tiedCandidatesTabuIndex[k];
-			//cout << "yes in aspiration w2+Wf = " << w2+Wf << endl;
-			//getchar();
 			return k;
 		}
 		else if (tiedCandidatesLength > 0)
@@ -349,10 +381,9 @@ using namespace std;
 		{
 			localBestSolutionQuality = currSolutionQuality;
 			localBestSolutionLength = currSolutionLength;
-			/*for( i = 0; i < Max_Vtx; i++ )
-			{
-				Tbest[ i ] = vectex[ i ];
-			}*/
+			for (int i = 0; i < currSolutionLength; i++) {
+				localBestSolution[i] = currSolution[i];
+			}
 		}
 
 		return 1;
@@ -383,7 +414,6 @@ using namespace std;
 				swapBuddy[swapIn] = k;
 			}
 		}
-		//cout << "len1 = " << len1 << " l = " << l << endl;
 		for (i = 0; i < swappersLength; i++)
 		{
 			swapIn = swappers[i];
@@ -465,7 +495,6 @@ using namespace std;
 			numOfVerticesInSolutionNotConnectedTo[disconnectedVertex]++;
 			if ((numOfVerticesInSolutionNotConnectedTo[disconnectedVertex] == 1) && (inCurrSolution[disconnectedVertex] == 0))
 			{
-				//cout << "tt k1 = " << k1 << "len0 = " << len0 << "n = " << n << "m = " << m << " m1 = " << m1 << endl;
 				swapIndexIn = indices[disconnectedVertex];
 				addersLength--;
 				lastElementOfSwappers = adders[addersLength];
@@ -476,8 +505,6 @@ using namespace std;
 				indices[disconnectedVertex] = swappersLength;
 				swappersLength++;
 				swapBuddy[disconnectedVertex] = vertexIn;
-
-				//getchar();
 			}
 			if (numOfVerticesInSolutionNotConnectedTo[disconnectedVertex] == 2)
 			{
@@ -491,7 +518,6 @@ using namespace std;
 
 		//the backtrack process, delete m1 from the current independent set
 		inCurrSolution[vertexOut] = 0;
-		//cout << "len1 = " << len1 << endl;
 		tabuin[vertexOut] = iterationCtr + TABUL + randomInt(swappersLength + 2);
 		currSolutionLength--;
 		currSolution[indexOut] = currSolution[currSolutionLength];
@@ -527,14 +553,12 @@ using namespace std;
 		{
 			localBestSolutionQuality = currSolutionQuality;
 			localBestSolutionLength = currSolutionLength;
-			/*for( i = 0; i < Max_Vtx; i++ )
-			{
-				Tbest[ i ] = vectex[ i ];
-			}*/
+			for (int i = 0; i < currSolutionLength; i++) {
+				localBestSolution[i] = currSolution[i];
+			}
 		}
 		return 1;
 	}
-
 
 	int findMinWeightInCurrSolution()
 	{
@@ -607,9 +631,8 @@ using namespace std;
 		}
 	}
 
-	int performLocalSearch(int maxUnimproved)
-	{
-		int k, mysteriousL, bestToAdd, bestToSwap, addDelta, swapDelta, deleteDelta, bestDeleteIndex, bestToDelete;
+	int setInitialSolution() {
+		int mysteriousL, bestToAdd;
 		iterationCtr = 0;
 		resetLists();
 		while (1)
@@ -623,8 +646,13 @@ using namespace std;
 					return localBestSolutionQuality;
 			}
 			else
-				break;
+				return localBestSolutionQuality;
 		}
+	}
+
+	int performLocalSearch(int maxUnimproved)
+	{
+		int k, mysteriousL, bestToAdd, bestToSwap, addDelta, swapDelta, deleteDelta, bestDeleteIndex, bestToDelete;
 
 		while (iterationCtr < maxUnimproved)
 		{
@@ -693,20 +721,6 @@ using namespace std;
 		return localBestSolutionQuality;
 	}
 
-	void verify()
-	{
-		int i, j;
-		for (i = 0; i < numVertices; i++)
-		{
-			if (TTbest[i] == 1)
-			{
-				for (j = i + 1; j < numVertices; j++)
-					if ((TTbest[j] == 1) && (adjacencyMatrix[i][j] == 1))
-						cout << "hello there is something wrong" << endl;
-			}
-		}
-	}
-
 	void printResultsToFile()
 	{
 		int i;
@@ -758,6 +772,79 @@ using namespace std;
 		fclose(fp);
 		return;
 	}
+	void addLocalBestToEliteSet() {
+		int min = INT32_MAX;
+		int minIndex = 0;
+		if (eliteSetSize >= ELITE_SET_CAPACITY) {
+			for (int i = 0; i < eliteSetSize; i++) {
+				if (eliteSetWeights[i] < min) {
+					min = eliteSetWeights[i];
+					minIndex = i;
+				}
+			}
+			for (int j = 0; j < localBestSolutionLength; j++) {
+				eliteSet[minIndex][j] = localBestSolution[j];
+			}
+			eliteSetSizes[minIndex] = localBestSolutionLength;
+			eliteSetWeights[minIndex] = localBestSolutionQuality;
+		}
+		else {
+			for (int j = 0; j < localBestSolutionLength; j++) {
+				eliteSet[eliteSetSize][j] = localBestSolution[j];
+			}
+			eliteSetSizes[eliteSetSize] = localBestSolutionLength;
+			eliteSetWeights[eliteSetSize] = localBestSolutionQuality;
+			eliteSetSize++;
+		}
+		eliteSetMinWeight = INT32_MAX;
+		for (int i = 0; i < eliteSetSize; i++) {
+			if (eliteSetWeights[i] < eliteSetMinWeight) {
+				eliteSetMinWeight = eliteSetWeights[i];
+			}
+		}
+	}
+
+	void calculateDifferences() {
+		workingMinusGuidingSize = 0;
+		guidingMinusWorkingSize = 0;
+		for (int i = 0; i < workingSolutionSize; i++) {
+			if (!guidingContains[workingSolution[i]]) {
+				workingMinusGuiding[workingMinusGuidingSize] = workingSolution[i];
+				workingMinusGuidingSize++;
+			}
+		}
+		for (int i = 0; i < guidingSolutionSize; i++) {
+			if (!workingContains[guidingSolution[i]]) {
+				guidingMinusWorking[guidingMinusWorkingSize] = guidingSolution[i];
+				guidingMinusWorkingSize++;
+			}
+		}
+	}
+
+	void performPathRelinking() {
+		memset(workingContains, false, numVertices);
+		memset(guidingContains, false, numVertices);
+		for (int i = 0; i < eliteSetSize; i++) {
+			for (int m = 0; m < eliteSetSizes[i]; m++) {
+				initialSolution[m] = eliteSet[i][m];
+				workingSolution[m] = eliteSet[i][m];
+				workingContains[eliteSet[i][m]] = true;
+			}
+			workingSolutionSize = eliteSetSizes[i];
+			initialSolutionSize = eliteSetSizes[i];
+			for (int j = i + 1; j < eliteSetSize; j++) {
+				for (int m = 0; m < eliteSetSizes[j]; m++) {
+					guidingSolution[m] = eliteSet[j][m];
+					guidingContains[eliteSet[j][m]] = true;
+				}
+				guidingSolutionSize = eliteSetSizes[j];
+				calculateDifferences();
+				while (workingMinusGuidingSize > 0 || guidingMinusWorkingSize > 0) {
+
+				}
+			}
+		}
+	}
 
 	int runHeuristic()
 	{
@@ -768,7 +855,14 @@ using namespace std;
 		starting_time = (double)clock();
 		for (i = 0; i < maxIterationsDividedByMaxUnimproved; i++)
 		{
+			improvedSolutionQuality = setInitialSolution();
+
 			improvedSolutionQuality = performLocalSearch(maxUnimproved);
+			
+			if (localBestSolutionQuality >= eliteSetMinWeight) { //local best solution
+				addLocalBestToEliteSet();
+			}
+
 			totalIterations = totalIterations + iterationCtr;
 			if (improvedSolutionQuality > runBest)
 			{
@@ -779,13 +873,13 @@ using namespace std;
 			}
 
 			if (improvedSolutionQuality == bestKnownSolutionQuality)
-				return runBest;
-			//cout << " l = " << l << " i = " << i << endl;
+				break;
 		}
+		performPathRelinking();
 		return runBest;
 	}
 
-	int main2(int argc, char **argv)
+	int main(int argc, char **argv)
 	{
 		if (argc == 5)
 		{
@@ -797,13 +891,9 @@ using namespace std;
 		else
 		{
 			cout << "Error : the user should input four parameters to run the program." << endl;
-			//cout << "The input file_name is " << File_Name << endl;
-			//cout << "The objective weight value is " << Waim << endl;
-			//cout << "The value for Waim related to the way of allocating weights to vertices is " << Wmode << endl;
-			//cout << "The search depth value is " << len_improve << endl;
 			exit(0);
 		}
-		srand((unsigned)time(NULL));
+		srand(13);// (unsigned)time(NULL));
 		Initializing();
 		numVerticesTimesSizeOfInt = numVertices * sizeof(int);
 		cout << "finish reading data" << endl;
@@ -823,5 +913,4 @@ using namespace std;
 		printResultsToFile();
 		cout << "finished" << endl;
 		getchar();
-		return -1;
 	}

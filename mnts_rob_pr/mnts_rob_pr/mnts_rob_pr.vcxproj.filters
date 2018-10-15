@@ -13,25 +13,10 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Source Files\mnts">
-      <UniqueIdentifier>{29777192-7c5f-4ee4-8662-567426174d2f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\mnts pr">
-      <UniqueIdentifier>{d44e45d0-c55a-4eaf-a194-1c27b08e0b06}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="mnts_rob.cpp">
-      <Filter>Source Files\mnts</Filter>
-    </ClCompile>
     <ClCompile Include="mnts_rob_pr.cpp">
-      <Filter>Source Files\mnts pr</Filter>
-    </ClCompile>
-    <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="input.in" />
   </ItemGroup>
 </Project>
