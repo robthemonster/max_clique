@@ -89,11 +89,22 @@ using namespace std;
 	int workingSolutionSize = 0;
 	bool * workingContains;
 
+	int * tempWorkingSolution;
+	int tempWorkingSolutionSize = 0;
+
 	int * workingMinusGuiding;
 	int workingMinusGuidingSize = 0;
-	
+	bool * workingMinusGuidingContains;
+
+	int * setDifferenceIndexMap;
+
+
 	int * guidingMinusWorking;
 	int guidingMinusWorkingSize = 0;
+	bool * guidingMinusWorkingContains;
+
+	int * tiedPRSwapIns;
+	int tiedPRSwapInsSize = 0;
 
 
 	// section 0, initiaze
@@ -146,10 +157,16 @@ using namespace std;
 				initialSolution = new int[2000];
 				guidingSolution = new int[2000];
 				workingSolution = new int[2000];
+				tempWorkingSolution = new int[2000];
 				workingMinusGuiding = new int[2000];
-				workingMinusGuiding = new int[2000];
+				guidingMinusWorking = new int[2000];
+				workingMinusGuidingContains = new bool[numVertices];
+				guidingMinusWorkingContains = new bool[numVertices];
+				setDifferenceIndexMap = new int[numVertices];
+
 				workingContains = new bool[numVertices];
 				guidingContains = new bool[numVertices];
+				tiedPRSwapIns = new int[numVertices];
 							   			
 
 				for (int x = 0; x < ELITE_SET_CAPACITY; x++) {
@@ -239,8 +256,6 @@ using namespace std;
 		memset(numOfVerticesInSolutionNotConnectedTo, 0, numVerticesTimesSizeOfInt);
 		memset(indices, 0, numVerticesTimesSizeOfInt);
 		memset(tabuin, 0, numVerticesTimesSizeOfInt);
-		memset(eliteSetSizes, 0, numVerticesTimesSizeOfInt);
-		eliteSetSize = 0;
 		for (i = 0; i < numVertices; i++)
 		{
 			adders[i] = i;
@@ -773,9 +788,9 @@ using namespace std;
 		return;
 	}
 	void addLocalBestToEliteSet() {
-		int min = INT32_MAX;
-		int minIndex = 0;
 		if (eliteSetSize >= ELITE_SET_CAPACITY) {
+			int min = INT32_MAX;
+			int minIndex = 0;
 			for (int i = 0; i < eliteSetSize; i++) {
 				if (eliteSetWeights[i] < min) {
 					min = eliteSetWeights[i];
@@ -787,6 +802,12 @@ using namespace std;
 			}
 			eliteSetSizes[minIndex] = localBestSolutionLength;
 			eliteSetWeights[minIndex] = localBestSolutionQuality;
+			eliteSetMinWeight = INT32_MAX;
+			for (int i = 0; i < eliteSetSize; i++) {
+				if (eliteSetWeights[i] < eliteSetMinWeight) {
+					eliteSetMinWeight = eliteSetWeights[i];
+				}
+			}
 		}
 		else {
 			for (int j = 0; j < localBestSolutionLength; j++) {
@@ -796,12 +817,6 @@ using namespace std;
 			eliteSetWeights[eliteSetSize] = localBestSolutionQuality;
 			eliteSetSize++;
 		}
-		eliteSetMinWeight = INT32_MAX;
-		for (int i = 0; i < eliteSetSize; i++) {
-			if (eliteSetWeights[i] < eliteSetMinWeight) {
-				eliteSetMinWeight = eliteSetWeights[i];
-			}
-		}
 	}
 
 	void calculateDifferences() {
@@ -810,14 +825,81 @@ using namespace std;
 		for (int i = 0; i < workingSolutionSize; i++) {
 			if (!guidingContains[workingSolution[i]]) {
 				workingMinusGuiding[workingMinusGuidingSize] = workingSolution[i];
+				setDifferenceIndexMap[workingSolution[i]] = workingMinusGuidingSize;
+				workingMinusGuidingContains[workingSolution[i]] = true;
 				workingMinusGuidingSize++;
 			}
 		}
 		for (int i = 0; i < guidingSolutionSize; i++) {
 			if (!workingContains[guidingSolution[i]]) {
 				guidingMinusWorking[guidingMinusWorkingSize] = guidingSolution[i];
+				setDifferenceIndexMap[guidingSolution[i]] = guidingMinusWorkingSize;
+				guidingMinusWorkingContains[guidingSolution[i]] = true;
 				guidingMinusWorkingSize++;
 			}
+		}
+	}
+
+	void moveWorkingTowardsGuiding() {
+		int minDisconnected = INT32_MAX;
+		for (int i = 0; i < guidingMinusWorkingSize; i++) {
+			int numDisconnected = 0;
+			int guidingVertex = guidingMinusWorking[i];
+			for (int j = 0; j < workingMinusGuidingSize; j++) {
+				int workingVertex = workingMinusGuiding[j];
+				if (adjacencyMatrix[guidingVertex][workingVertex] == 1) {
+					numDisconnected++;
+				}
+			}
+			if (numDisconnected < minDisconnected) {
+				minDisconnected = numDisconnected;
+				tiedPRSwapInsSize = 0;
+				tiedPRSwapIns[tiedPRSwapInsSize] = guidingVertex;
+				tiedPRSwapInsSize++;
+			}
+			else if (numDisconnected == minDisconnected) {
+				tiedPRSwapIns[tiedPRSwapInsSize] = guidingVertex;
+				tiedPRSwapInsSize++;
+			}
+		}
+		int randomIndex = randomInt(tiedPRSwapInsSize);
+		int swapInVertex = tiedPRSwapIns[randomIndex];
+		tempWorkingSolutionSize = 0;
+		for (int i = 0; i < workingSolutionSize; i++) {
+			int vertex = workingSolution[i];
+			if (workingMinusGuidingContains[vertex]) {
+				if (adjacencyMatrix[swapInVertex][vertex] == 0) {
+					tempWorkingSolution[tempWorkingSolutionSize] = vertex;
+					tempWorkingSolutionSize++;
+				}
+				else {
+					workingMinusGuidingContains[vertex] = false;
+					int index = setDifferenceIndexMap[vertex];
+					swap(workingMinusGuiding[index], workingMinusGuiding[workingMinusGuidingSize - 1]);
+					guidingMinusWorkingSize--;
+				}
+			}
+			else {
+				tempWorkingSolution[tempWorkingSolutionSize] = vertex;
+				tempWorkingSolutionSize++;
+			}
+		}
+		tempWorkingSolution[tempWorkingSolutionSize] = swapInVertex;
+		tempWorkingSolutionSize++;
+		guidingMinusWorkingContains[swapInVertex] = false;
+		int index = setDifferenceIndexMap[swapInVertex];
+		swap(guidingMinusWorking[index], guidingMinusWorking[guidingMinusWorkingSize - 1]);
+		guidingMinusWorkingSize--;
+		for (int i = 0; i < tempWorkingSolutionSize; i++) {
+			workingSolution[i] = tempWorkingSolution[i];
+		}
+		workingSolutionSize = tempWorkingSolutionSize;
+	}
+
+	void setCurrentToWorking() {
+		resetLists();
+		for (int i = 0; i < workingSolutionSize; i++) {
+			addToCurrSolution(workingSolution[i]);
 		}
 	}
 
@@ -840,7 +922,9 @@ using namespace std;
 				guidingSolutionSize = eliteSetSizes[j];
 				calculateDifferences();
 				while (workingMinusGuidingSize > 0 || guidingMinusWorkingSize > 0) {
-
+					moveWorkingTowardsGuiding();
+					setCurrentToWorking();
+					performLocalSearch(maxUnimproved);
 				}
 			}
 		}
