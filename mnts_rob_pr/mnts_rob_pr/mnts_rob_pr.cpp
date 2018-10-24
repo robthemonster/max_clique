@@ -665,7 +665,7 @@ using namespace std;
 		}
 	}
 
-	int performLocalSearch(int maxUnimproved)
+	int performLocalSearch(int maxUnimproved, bool pathRelinking)
 	{
 		int k, mysteriousL, bestToAdd, bestToSwap, addDelta, swapDelta, deleteDelta, bestDeleteIndex, bestToDelete;
 
@@ -683,13 +683,13 @@ using namespace std;
 					mysteriousL = addToCurrSolution(bestToAdd);
 
 					iterationCtr++;
-					if (localBestSolutionQuality == bestKnownSolutionQuality)
+					if (localBestSolutionQuality == bestKnownSolutionQuality && !pathRelinking)
 						return localBestSolutionQuality;
 				}
 				else
 				{
 					mysteriousL = doTheSwappy(bestToSwap);
-					if (localBestSolutionQuality == bestKnownSolutionQuality)
+					if (localBestSolutionQuality == bestKnownSolutionQuality && !pathRelinking)
 						return localBestSolutionQuality;
 					iterationCtr++;
 				}
@@ -697,7 +697,7 @@ using namespace std;
 			else if ((bestToAdd != -1) && (bestToSwap == -1))
 			{
 				mysteriousL = addToCurrSolution(bestToAdd);
-				if (localBestSolutionQuality == bestKnownSolutionQuality)
+				if (localBestSolutionQuality == bestKnownSolutionQuality && !pathRelinking)
 					return localBestSolutionQuality;
 
 				iterationCtr++;
@@ -711,7 +711,7 @@ using namespace std;
 				if (swapDelta > deleteDelta)
 				{
 					mysteriousL = doTheSwappy(bestToSwap);
-					if (localBestSolutionQuality == bestKnownSolutionQuality)
+					if (localBestSolutionQuality == bestKnownSolutionQuality && !pathRelinking)
 						return localBestSolutionQuality;
 					iterationCtr++;
 				}
@@ -890,23 +890,39 @@ using namespace std;
 		int index = setDifferenceIndexMap[swapInVertex];
 		swap(guidingMinusWorking[index], guidingMinusWorking[guidingMinusWorkingSize - 1]);
 		guidingMinusWorkingSize--;
+		memset(workingContains, false, numVertices);
 		for (int i = 0; i < tempWorkingSolutionSize; i++) {
 			workingSolution[i] = tempWorkingSolution[i];
+			workingContains[tempWorkingSolution[i]] = true;
 		}
 		workingSolutionSize = tempWorkingSolutionSize;
+	}
+	bool isClique(int * list, int size) {
+		for (int i = 0; i < size; i++) {
+			for (int j = 0; j < size; j++) {
+				if (i != j) {
+					if (adjacencyMatrix[list[i]][list[j]] == 1) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
 	}
 
 	void setCurrentToWorking() {
 		resetLists();
+		
 		for (int i = 0; i < workingSolutionSize; i++) {
-			addToCurrSolution(workingSolution[i]);
+			int addIndex = indices[workingSolution[i]];
+			addToCurrSolution(addIndex);
+			cout << "isClique: " << (isClique(currSolution, currSolutionLength) ? "true" : "false") << endl;
 		}
 	}
 
 	void performPathRelinking() {
-		memset(workingContains, false, numVertices);
-		memset(guidingContains, false, numVertices);
-		for (int i = 0; i < eliteSetSize; i++) {
+		for (int i = 0; i < eliteSetSize - 1; i++) {
+			memset(workingContains, false, numVertices);
 			for (int m = 0; m < eliteSetSizes[i]; m++) {
 				initialSolution[m] = eliteSet[i][m];
 				workingSolution[m] = eliteSet[i][m];
@@ -915,6 +931,7 @@ using namespace std;
 			workingSolutionSize = eliteSetSizes[i];
 			initialSolutionSize = eliteSetSizes[i];
 			for (int j = i + 1; j < eliteSetSize; j++) {
+				memset(guidingContains, false, numVertices);
 				for (int m = 0; m < eliteSetSizes[j]; m++) {
 					guidingSolution[m] = eliteSet[j][m];
 					guidingContains[eliteSet[j][m]] = true;
@@ -923,8 +940,9 @@ using namespace std;
 				calculateDifferences();
 				while (workingMinusGuidingSize > 0 || guidingMinusWorkingSize > 0) {
 					moveWorkingTowardsGuiding();
+					cout << "working isClique: " << (isClique(workingSolution, workingSolutionSize) ? "true" : "false") << endl;
 					setCurrentToWorking();
-					performLocalSearch(maxUnimproved);
+					cout << "Best after pr: " << performLocalSearch(maxUnimproved, true) << endl;
 				}
 			}
 		}
@@ -941,7 +959,7 @@ using namespace std;
 		{
 			improvedSolutionQuality = setInitialSolution();
 
-			improvedSolutionQuality = performLocalSearch(maxUnimproved);
+			improvedSolutionQuality = performLocalSearch(maxUnimproved, false);
 			
 			if (localBestSolutionQuality >= eliteSetMinWeight) { //local best solution
 				addLocalBestToEliteSet();
@@ -956,7 +974,7 @@ using namespace std;
 				runBestLength = localBestSolutionLength;
 			}
 
-			if (improvedSolutionQuality == bestKnownSolutionQuality)
+			if (runBest == bestKnownSolutionQuality && eliteSetSize == ELITE_SET_CAPACITY)
 				break;
 		}
 		performPathRelinking();
