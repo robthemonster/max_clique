@@ -107,6 +107,22 @@ using namespace std;
 	int tiedPRSwapInsSize = 0;
 
 
+	bool isClique(int * list, int size) {
+		for (int i = 0; i < size; i++) {
+			for (int j = 0; j < size; j++) {
+				if (i != j) {
+					if (list[i] == list[j]) {
+						cout << "oops" << endl;
+					}
+					if (adjacencyMatrix[list[i]][list[j]] == 1) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
+	}
+
 	// section 0, initiaze
 	void Initializing()
 	{
@@ -657,7 +673,7 @@ using namespace std;
 			{
 				mysteriousL = addToCurrSolution(bestToAdd);
 				iterationCtr++;
-				if (localBestSolutionQuality == bestKnownSolutionQuality)
+				if (localBestSolutionQuality >= bestKnownSolutionQuality)
 					return localBestSolutionQuality;
 			}
 			else
@@ -668,7 +684,7 @@ using namespace std;
 	int performLocalSearch(int maxUnimproved, bool pathRelinking)
 	{
 		int k, mysteriousL, bestToAdd, bestToSwap, addDelta, swapDelta, deleteDelta, bestDeleteIndex, bestToDelete;
-
+		int restartThreshold = INT32_MIN;
 		while (iterationCtr < maxUnimproved)
 		{
 			bestToAdd = WSelectBestFromAdd();
@@ -683,13 +699,13 @@ using namespace std;
 					mysteriousL = addToCurrSolution(bestToAdd);
 
 					iterationCtr++;
-					if (localBestSolutionQuality == bestKnownSolutionQuality && !pathRelinking)
+					if (localBestSolutionQuality >= bestKnownSolutionQuality && !pathRelinking)
 						return localBestSolutionQuality;
 				}
 				else
 				{
 					mysteriousL = doTheSwappy(bestToSwap);
-					if (localBestSolutionQuality == bestKnownSolutionQuality && !pathRelinking)
+					if (localBestSolutionQuality >= bestKnownSolutionQuality && !pathRelinking)
 						return localBestSolutionQuality;
 					iterationCtr++;
 				}
@@ -697,7 +713,7 @@ using namespace std;
 			else if ((bestToAdd != -1) && (bestToSwap == -1))
 			{
 				mysteriousL = addToCurrSolution(bestToAdd);
-				if (localBestSolutionQuality == bestKnownSolutionQuality && !pathRelinking)
+				if (localBestSolutionQuality >= bestKnownSolutionQuality && !pathRelinking)
 					return localBestSolutionQuality;
 
 				iterationCtr++;
@@ -711,7 +727,7 @@ using namespace std;
 				if (swapDelta > deleteDelta)
 				{
 					mysteriousL = doTheSwappy(bestToSwap);
-					if (localBestSolutionQuality == bestKnownSolutionQuality && !pathRelinking)
+					if (localBestSolutionQuality >= bestKnownSolutionQuality && !pathRelinking)
 						return localBestSolutionQuality;
 					iterationCtr++;
 				}
@@ -730,7 +746,10 @@ using namespace std;
 					return localBestSolutionQuality;
 				iterationCtr++;
 			}
-
+			if (pathRelinking && localBestSolutionQuality > restartThreshold) {
+				iterationCtr = 0;
+				restartThreshold = localBestSolutionQuality;
+			}
 		}
 
 		return localBestSolutionQuality;
@@ -774,7 +793,7 @@ using namespace std;
 		}
 		double twavg = (double(wavg)) / 100;
 		for (i = 0; i < 100; i++)
-			if (solutionQuality[i] == bestSolutionQuality)
+			if (solutionQuality[i] >= bestSolutionQuality)
 			{
 				numTiedForBest++;
 				tiedIterationAvg = tiedIterationAvg + Iteration[i];
@@ -822,6 +841,8 @@ using namespace std;
 	void calculateDifferences() {
 		workingMinusGuidingSize = 0;
 		guidingMinusWorkingSize = 0;
+		memset(workingMinusGuidingContains, false, sizeof(bool) * numVertices);
+		memset(guidingMinusWorkingContains, false, sizeof(bool) * numVertices);
 		for (int i = 0; i < workingSolutionSize; i++) {
 			if (!guidingContains[workingSolution[i]]) {
 				workingMinusGuiding[workingMinusGuidingSize] = workingSolution[i];
@@ -842,6 +863,7 @@ using namespace std;
 
 	void moveWorkingTowardsGuiding() {
 		int minDisconnected = INT32_MAX;
+		tiedPRSwapInsSize = 0;
 		for (int i = 0; i < guidingMinusWorkingSize; i++) {
 			int numDisconnected = 0;
 			int guidingVertex = guidingMinusWorking[i];
@@ -876,7 +898,8 @@ using namespace std;
 					workingMinusGuidingContains[vertex] = false;
 					int index = setDifferenceIndexMap[vertex];
 					swap(workingMinusGuiding[index], workingMinusGuiding[workingMinusGuidingSize - 1]);
-					guidingMinusWorkingSize--;
+					setDifferenceIndexMap[workingMinusGuiding[index]] = index;
+					workingMinusGuidingSize--;
 				}
 			}
 			else {
@@ -886,43 +909,33 @@ using namespace std;
 		}
 		tempWorkingSolution[tempWorkingSolutionSize] = swapInVertex;
 		tempWorkingSolutionSize++;
+
 		guidingMinusWorkingContains[swapInVertex] = false;
 		int index = setDifferenceIndexMap[swapInVertex];
 		swap(guidingMinusWorking[index], guidingMinusWorking[guidingMinusWorkingSize - 1]);
+		setDifferenceIndexMap[guidingMinusWorking[index]] = index;
 		guidingMinusWorkingSize--;
-		memset(workingContains, false, numVertices);
+		memset(workingContains, false, sizeof(bool) * numVertices);
 		for (int i = 0; i < tempWorkingSolutionSize; i++) {
 			workingSolution[i] = tempWorkingSolution[i];
 			workingContains[tempWorkingSolution[i]] = true;
 		}
 		workingSolutionSize = tempWorkingSolutionSize;
 	}
-	bool isClique(int * list, int size) {
-		for (int i = 0; i < size; i++) {
-			for (int j = 0; j < size; j++) {
-				if (i != j) {
-					if (adjacencyMatrix[list[i]][list[j]] == 1) {
-						return false;
-					}
-				}
-			}
-		}
-		return true;
-	}
+
 
 	void setCurrentToWorking() {
 		resetLists();
-		
 		for (int i = 0; i < workingSolutionSize; i++) {
 			int addIndex = indices[workingSolution[i]];
 			addToCurrSolution(addIndex);
-			cout << "isClique: " << (isClique(currSolution, currSolutionLength) ? "true" : "false") << endl;
 		}
 	}
 
-	void performPathRelinking() {
+	void performPathRelinking(int runBest) {
+		int min = runBest;
 		for (int i = 0; i < eliteSetSize - 1; i++) {
-			memset(workingContains, false, numVertices);
+			memset(workingContains, false, sizeof(bool) * numVertices);
 			for (int m = 0; m < eliteSetSizes[i]; m++) {
 				initialSolution[m] = eliteSet[i][m];
 				workingSolution[m] = eliteSet[i][m];
@@ -931,7 +944,7 @@ using namespace std;
 			workingSolutionSize = eliteSetSizes[i];
 			initialSolutionSize = eliteSetSizes[i];
 			for (int j = i + 1; j < eliteSetSize; j++) {
-				memset(guidingContains, false, numVertices);
+				memset(guidingContains, false, sizeof(bool) * numVertices);
 				for (int m = 0; m < eliteSetSizes[j]; m++) {
 					guidingSolution[m] = eliteSet[j][m];
 					guidingContains[eliteSet[j][m]] = true;
@@ -940,12 +953,17 @@ using namespace std;
 				calculateDifferences();
 				while (workingMinusGuidingSize > 0 || guidingMinusWorkingSize > 0) {
 					moveWorkingTowardsGuiding();
-					cout << "working isClique: " << (isClique(workingSolution, workingSolutionSize) ? "true" : "false") << endl;
 					setCurrentToWorking();
-					cout << "Best after pr: " << performLocalSearch(maxUnimproved, true) << endl;
+					int afterPr = performLocalSearch(maxUnimproved, true);
+					if (afterPr > min) {
+						min = afterPr;
+					}
 				}
 			}
 		}
+		cout << "Before PR: " << runBest << " After: " << min << endl;
+		eliteSetSize = 0;
+		eliteSetMinWeight = INT32_MIN;
 	}
 
 	int runHeuristic()
@@ -974,10 +992,10 @@ using namespace std;
 				runBestLength = localBestSolutionLength;
 			}
 
-			if (runBest == bestKnownSolutionQuality && eliteSetSize == ELITE_SET_CAPACITY)
+			if (runBest >= bestKnownSolutionQuality && eliteSetSize == ELITE_SET_CAPACITY)
 				break;
 		}
-		performPathRelinking();
+		performPathRelinking(runBest);
 		return runBest;
 	}
 
@@ -995,7 +1013,7 @@ using namespace std;
 			cout << "Error : the user should input four parameters to run the program." << endl;
 			exit(0);
 		}
-		srand(13);// (unsigned)time(NULL));
+		srand((unsigned)time(NULL));
 		Initializing();
 		numVerticesTimesSizeOfInt = numVertices * sizeof(int);
 		cout << "finish reading data" << endl;
