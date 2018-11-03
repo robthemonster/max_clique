@@ -659,9 +659,9 @@ using namespace std;
 				swappers[swappersLength] = disconnectedVertex;
 				indices[disconnectedVertex] = swappersLength;
 				swappersLength++;
-				if (swapBuddy[swappers[swappersLength - 1]] == minVertex) {
+				/*if (swapBuddy[swappers[swappersLength - 1]] == minVertex) {
 					return -1;
-				}
+				}*/
 			}
 		}
 	}
@@ -896,24 +896,24 @@ using namespace std;
 	}
 
 	void moveWorkingTowardsGuiding() {
-		int minDisconnected = INT32_MAX;
+		int maxDelta = INT32_MIN;
 		tiedPRSwapInsSize = 0;
 		for (int i = 0; i < guidingMinusWorkingSize; i++) {
-			int numDisconnected = 0;
+			int delta = weights[guidingMinusWorking[i]];
 			int guidingVertex = guidingMinusWorking[i];
 			for (int j = 0; j < workingMinusGuidingSize; j++) {
 				int workingVertex = workingMinusGuiding[j];
 				if (adjacencyMatrix[guidingVertex][workingVertex] == 1) {
-					numDisconnected++;
+					delta -= weights[workingVertex];
 				}
 			}
-			if (numDisconnected < minDisconnected) {
-				minDisconnected = numDisconnected;
+			if (delta > maxDelta) {
+				maxDelta = delta;
 				tiedPRSwapInsSize = 0;
 				tiedPRSwapIns[tiedPRSwapInsSize] = guidingVertex;
 				tiedPRSwapInsSize++;
 			}
-			else if (numDisconnected == minDisconnected) {
+			else if (delta == maxDelta) {
 				tiedPRSwapIns[tiedPRSwapInsSize] = guidingVertex;
 				tiedPRSwapInsSize++;
 			}
@@ -986,7 +986,7 @@ using namespace std;
 				guidingSolutionSize = eliteSetSizes[j];
 				calculateDifferences();
 				int steps = 0;
-				while (workingMinusGuidingSize > 0 || guidingMinusWorkingSize > 0) {
+				while (guidingMinusWorkingSize > 0) {
 					moveWorkingTowardsGuiding();
 					setCurrentToWorking();
 					steps++;
@@ -1031,7 +1031,7 @@ using namespace std;
 				runBestLength = localBestSolutionLength;
 			}
 
-			if (runBest >= bestKnownSolutionQuality && eliteSetSize == ELITE_SET_CAPACITY)
+			if (improvedSolutionQuality >= bestKnownSolutionQuality && eliteSetSize == ELITE_SET_CAPACITY)
 				break;
 		}
 		performPathRelinking(runBest);
