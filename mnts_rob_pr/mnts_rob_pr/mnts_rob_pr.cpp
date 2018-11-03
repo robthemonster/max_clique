@@ -106,6 +106,8 @@ using namespace std;
 	int * tiedPRSwapIns;
 	int tiedPRSwapInsSize = 0;
 
+	int * s2Contains;
+
 
 	bool isClique(int * list, int size) {
 		for (int i = 0; i < size; i++) {
@@ -183,6 +185,8 @@ using namespace std;
 				workingContains = new bool[numVertices];
 				guidingContains = new bool[numVertices];
 				tiedPRSwapIns = new int[numVertices];
+
+				s2Contains = new int[numVertices];
 							   			
 
 				for (int x = 0; x < ELITE_SET_CAPACITY; x++) {
@@ -755,6 +759,33 @@ using namespace std;
 		return localBestSolutionQuality;
 	}
 
+	bool isEqual(int * s1, int size1, int * s2, int size2) {
+		if (size1 != size2) {
+			return false;
+		}
+		memset(s2Contains, false, numVertices * sizeof(bool));
+		for (int i = 0; i < size2; i++) {
+			s2Contains[s2[i]] = true;
+		}
+		for (int i = 0; i < size1; i++) {
+			if (!s2Contains[s1[i]]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+
+	bool isUnique(int solution[], int size) {
+		for (int i = 0; i < eliteSetSize; i++) {
+			if (isEqual(eliteSet[i], eliteSetSizes[i], solution, size)) {
+				return false;
+			}
+		}
+		return true;
+
+	}
+
 	void printResultsToFile()
 	{
 		int i;
@@ -807,6 +838,9 @@ using namespace std;
 		return;
 	}
 	void addLocalBestToEliteSet() {
+		if (!isUnique(localBestSolution, localBestSolutionLength)) {
+			return;
+		}
 		if (eliteSetSize >= ELITE_SET_CAPACITY) {
 			int min = INT32_MAX;
 			int minIndex = 0;
@@ -951,13 +985,18 @@ using namespace std;
 				}
 				guidingSolutionSize = eliteSetSizes[j];
 				calculateDifferences();
+				int steps = 0;
 				while (workingMinusGuidingSize > 0 || guidingMinusWorkingSize > 0) {
 					moveWorkingTowardsGuiding();
 					setCurrentToWorking();
+					steps++;
 					int afterPr = performLocalSearch(maxUnimproved, true);
 					if (afterPr > min) {
 						min = afterPr;
 					}
+				}
+				if (steps == 0) {
+					cout << "danger" << endl;
 				}
 			}
 		}
