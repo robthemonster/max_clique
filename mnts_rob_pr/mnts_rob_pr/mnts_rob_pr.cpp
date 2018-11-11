@@ -71,8 +71,17 @@ using namespace std;
 	int maxIterationsDividedByMaxUnimproved;
 	int weightMod;
 
+	int prIterations[100];
+	double prTimeUsed[100];
+	int prLenUsed[100];
+	int prSolutionQuality[100];
 
-	const int ELITE_SET_CAPACITY = 20;
+	int prBestQuality = 0;
+	int prBestLength = 0;
+	double prStartTime = 0, prFinishTime = 0;
+	int prIterationSolutionWasFoundOn = 0;
+
+	const int ELITE_SET_CAPACITY = 25;
 	int** eliteSet;
 	int eliteSetSize = 0;
 	int* eliteSetSizes;
@@ -659,9 +668,6 @@ using namespace std;
 				swappers[swappersLength] = disconnectedVertex;
 				indices[disconnectedVertex] = swappersLength;
 				swappersLength++;
-				/*if (swapBuddy[swappers[swappersLength - 1]] == minVertex) {
-					return -1;
-				}*/
 			}
 		}
 	}
@@ -677,7 +683,7 @@ using namespace std;
 			{
 				mysteriousL = addToCurrSolution(bestToAdd);
 				iterationCtr++;
-				if (localBestSolutionQuality >= bestKnownSolutionQuality)
+				if (localBestSolutionQuality == bestKnownSolutionQuality)
 					return localBestSolutionQuality;
 			}
 			else
@@ -689,6 +695,7 @@ using namespace std;
 	{
 		int k, mysteriousL, bestToAdd, bestToSwap, addDelta, swapDelta, deleteDelta, bestDeleteIndex, bestToDelete;
 		int restartThreshold = INT32_MIN;
+		int tmpMaxUnimproved = maxUnimproved;
 		while (iterationCtr < maxUnimproved)
 		{
 			bestToAdd = WSelectBestFromAdd();
@@ -703,13 +710,13 @@ using namespace std;
 					mysteriousL = addToCurrSolution(bestToAdd);
 
 					iterationCtr++;
-					if (localBestSolutionQuality >= bestKnownSolutionQuality && !pathRelinking)
+					if (localBestSolutionQuality == bestKnownSolutionQuality && !pathRelinking)
 						return localBestSolutionQuality;
 				}
 				else
 				{
 					mysteriousL = doTheSwappy(bestToSwap);
-					if (localBestSolutionQuality >= bestKnownSolutionQuality && !pathRelinking)
+					if (localBestSolutionQuality == bestKnownSolutionQuality && !pathRelinking)
 						return localBestSolutionQuality;
 					iterationCtr++;
 				}
@@ -717,7 +724,7 @@ using namespace std;
 			else if ((bestToAdd != -1) && (bestToSwap == -1))
 			{
 				mysteriousL = addToCurrSolution(bestToAdd);
-				if (localBestSolutionQuality >= bestKnownSolutionQuality && !pathRelinking)
+				if (localBestSolutionQuality == bestKnownSolutionQuality && !pathRelinking)
 					return localBestSolutionQuality;
 
 				iterationCtr++;
@@ -731,7 +738,7 @@ using namespace std;
 				if (swapDelta > deleteDelta)
 				{
 					mysteriousL = doTheSwappy(bestToSwap);
-					if (localBestSolutionQuality >= bestKnownSolutionQuality && !pathRelinking)
+					if (localBestSolutionQuality == bestKnownSolutionQuality && !pathRelinking)
 						return localBestSolutionQuality;
 					iterationCtr++;
 				}
@@ -751,7 +758,7 @@ using namespace std;
 				iterationCtr++;
 			}
 			if (pathRelinking && localBestSolutionQuality > restartThreshold) {
-				iterationCtr = 0;
+				//maxUnimproved = iterationCtr + tmpMaxUnimproved;
 				restartThreshold = localBestSolutionQuality;
 			}
 		}
@@ -802,6 +809,7 @@ using namespace std;
 		for (i = 0; i < 100; i++)
 		{
 			fprintf(fp, "sum = %6d, iter = %6d, len = %5d,  time = %8lf \n", solutionQuality[i], Iteration[i], len_used[i], time_used[i]);
+			fprintf(fp, "PR: sum = %6d, iter = %6d, len = %5d,  time = %8lf \n", prSolutionQuality[i], prIterations[i], prLenUsed[i], prTimeUsed[i]);
 		}
 
 		fprintf(fp, "\n\n the total information: \n");
@@ -834,6 +842,20 @@ using namespace std;
 		tiedIterationAvg = int((double(tiedIterationAvg)) / numTiedForBest);
 		tiedTimeAvg = tiedTimeAvg / (numTiedForBest * 1000);
 		fprintf(fp, "avg_sum = %10lf, succes = %6d, len = %5d, avg_iter = %6d,  time = %8lf \n", twavg, numTiedForBest, lenbb, tiedIterationAvg, tiedTimeAvg);
+
+		double totalImprovement = 0;
+		double totalIterationsTaken = 0;
+		int numImproved = 0;
+		for (int i = 0; i < 100; i++) {
+			totalImprovement += prSolutionQuality[i] - solutionQuality[i];
+			totalIterationsTaken += prIterations[i];
+			if (prSolutionQuality[i] > solutionQuality[i]) {
+				numImproved++;
+			}
+		}
+
+		fprintf(fp, "Avg improvment = %10lf, Num Improved = %6d, Iterations/Improvement = %10lf", totalImprovement / 100.0, numImproved, totalIterationsTaken/totalImprovement);
+		
 		fclose(fp);
 		return;
 	}
@@ -1072,8 +1094,15 @@ using namespace std;
 	}
 
 	void performPathRelinking(int runBest) {
+		prStartTime = (double)clock();
+		prFinishTime = prStartTime;
+		prBestLength = runBestLength;
+		prBestQuality = runBest;
+		prIterationSolutionWasFoundOn = 0;
+
 		int min = runBest;
 		long iterationsUsed = 0;
+		long iterationFound = 0;
 		for (int i = 0; i < eliteSetSize - 1; i++) {
 			memset(workingContains, false, sizeof(bool) * numVertices);
 			for (int m = 0; m < eliteSetSizes[i]; m++) {
@@ -1084,7 +1113,7 @@ using namespace std;
 			workingSolutionSize = eliteSetSizes[i];
 			initialSolutionSize = eliteSetSizes[i];
 			for (int j = 0; j < eliteSetSize; j++) {
-				if (j == i || eliteSetWeights[j] > eliteSetWeights[i]) {
+				if (j == i ) {
 					continue;
 				}
 				memset(guidingContains, false, sizeof(bool) * numVertices);
@@ -1101,10 +1130,14 @@ using namespace std;
 					steps++;
 					int currQual = currSolutionQuality;
 					int afterPr = performLocalSearch(maxUnimproved, true);
-					cout <<"(" << eliteSetWeights[i] << "->" << eliteSetWeights[j] << ") " <<"Solution qual " << currQual << " yielded qual " << afterPr << endl;
 					iterationsUsed += iterationCtr;
 					if (afterPr > min) {
 						min = afterPr;
+						iterationFound = iterationsUsed;
+						prFinishTime = (double)clock();
+						prIterationSolutionWasFoundOn = iterationFound;
+						prBestLength = currSolutionLength;
+						prBestQuality = afterPr;
 					}
 				}
 				if (steps == 0) {
@@ -1112,7 +1145,7 @@ using namespace std;
 				}
 			}
 		}
-		cout << "Before PR: " << runBest << " After: " << min << " Iterations: " << iterationsUsed << endl;
+		cout << "Before PR: " << runBest << " After: " << min << " Iterations: " << iterationFound << endl;
 		eliteSetSize = 0;
 		eliteSetMinWeight = INT32_MIN;
 	}
@@ -1178,6 +1211,12 @@ using namespace std;
 			len_used[i] = runBestLength;
 			time_used[i] = finishing_time - starting_time;
 			Iteration[i] = iterationSolutionWasFoundOn;
+
+			prSolutionQuality[i] = prBestQuality;
+			prLenUsed[i] = prBestLength;
+			prTimeUsed[i] = prFinishTime - prStartTime;
+			prIterations[i] = prIterationSolutionWasFoundOn;
+
 			cout << "i = " << i << " l = " << l << endl;
 		}
 
