@@ -28,6 +28,7 @@
 #include <time.h>
 #include <ctime>
 #include <vector>
+#include <random>
 #include <string.h>
 
 using namespace std;
@@ -35,16 +36,16 @@ using namespace std;
 	char * File_Name;
 	int **adjacencyMatrix;   // adjacent matrix
 	int *inCurrSolution;
-	int *numOfVerticesInSolutionNotConnectedTo;
+	int *numOfVerticesInSolutionNotConnectedTo; //funch
 	int *indices;
 	int *tabuin;
 	int numVertices;
 	int *notConnectedLength;
 	int **notConnected;
-	int *currSolution;
-	int currSolutionLength;
+	int *currSolution; //cruset
+	int currSolutionLength; //len
 	int *localBestSolution;
-	int numVerticesTimesSizeOfInt;
+	int numVerticesTimesSizeOfInt; //tm1
 	int *adders;
 	int *swappers;
 	int *weights;
@@ -54,13 +55,13 @@ using namespace std;
 	int *tiedCandidatesTabuIndex;
 	int iterationCtr;
 	int TABUL = 7;
-	int currSolutionQuality;
-	int localBestSolutionQuality;
+	int currSolutionQuality; //Wf
+	int localBestSolutionQuality; //WBest
 	int *tiedCandidateIndex;
-	int bestKnownSolutionQuality;
+	int bestKnownSolutionQuality; //Waim
 	int iterationSolutionWasFoundOn;
 	double starting_time, finishing_time, avg_time;
-	int localBestSolutionLength = 0;
+	int localBestSolutionLength = 0; //len_best
 	int runBestLength;
 	int Iteration[100];
 	double time_used[100];
@@ -117,6 +118,8 @@ using namespace std;
 
 	int * s2Contains;
 
+	random_device rd;
+	mt19937 mersenneTwister(rd());
 
 	bool isClique(int * list, int size) {
 		for (int i = 0; i < size; i++) {
@@ -272,10 +275,17 @@ using namespace std;
 		FIC.close();
 	}
 
-	int randomInt(int n)
+	int randomInt(int n, bool pr)
 	{
-		int randomInt = rand() % n;
-		return randomInt;
+		if (!pr) {
+			int randomInt = rand() % n;
+			return randomInt;
+		}
+		else {
+			uniform_int_distribution<int> dist(0, n - 1);
+			int randomInt = dist(mersenneTwister);
+			return randomInt;
+		}
 	}
 
 	void resetLists()
@@ -303,7 +313,7 @@ using namespace std;
 		numNonTabu = 0;
 		if (addersLength > 30)
 		{
-			k = randomInt(addersLength);
+			k = randomInt(addersLength, false);
 			return k;
 		}
 		for (i = 0; i < addersLength; i++)
@@ -316,13 +326,13 @@ using namespace std;
 			return -1;
 		else
 		{
-			k = randomInt(numNonTabu);
+			k = randomInt(numNonTabu, false);
 			k = tiedCandidatesTabuIndex[k];
 			return k;
 		}
 	}
 
-	int WSelectBestFromAdd()
+	int WSelectBestFromAdd(bool pr)
 	{
 		int i, k, tiedCandidatesLength, tiedCandidatesTabuLength, greatestDelta, greatestTabuDelta;
 		tiedCandidatesLength = 0;
@@ -363,13 +373,13 @@ using namespace std;
 
 		if ((tiedCandidatesTabuLength > 0) && (greatestTabuDelta > greatestDelta) && ((greatestTabuDelta + currSolutionQuality) > localBestSolutionQuality))
 		{
-			k = randomInt(tiedCandidatesTabuLength);
+			k = randomInt(tiedCandidatesTabuLength, pr);
 			k = tiedCandidatesTabuIndex[k];
 			return k;
 		}
 		else if (tiedCandidatesLength > 0)
 		{
-			k = randomInt(tiedCandidatesLength);
+			k = randomInt(tiedCandidatesLength, pr);
 			k = tiedCandidateIndex[k];
 			return k;
 		}
@@ -433,7 +443,7 @@ using namespace std;
 		return 1;
 	}
 
-	int WSelectBestFromSwappy()
+	int WSelectBestFromSwappy(bool pr)
 	{
 		int i, j, k, l, tiedCandidatesLength, tiedCandidatesTabuLength, swapDelta, greatestDelta, tabuGreatestDelta, swapIn, swapOut;
 		tiedCandidatesLength = 0;
@@ -493,13 +503,13 @@ using namespace std;
 
 		if ((tiedCandidatesTabuLength > 0) && (tabuGreatestDelta > greatestDelta) && ((tabuGreatestDelta + currSolutionQuality) > localBestSolutionQuality))
 		{
-			k = randomInt(tiedCandidatesTabuLength);
+			k = randomInt(tiedCandidatesTabuLength, pr);
 			k = tiedCandidatesTabuIndex[k];
 			return k;
 		}
 		else if (tiedCandidatesLength > 0)
 		{
-			k = randomInt(tiedCandidatesLength);
+			k = randomInt(tiedCandidatesLength, pr);
 			k = tiedCandidateIndex[k];
 			return k;
 		}
@@ -509,7 +519,7 @@ using namespace std;
 		}
 	}
 
-	int doTheSwappy(int SelN)
+	int doTheSwappy(int SelN, bool pr)
 	{
 		int i, swapIndexIn, vertexIn, vertexOut, disconnectedVertex, lastElementOfSwappers, indexOut;
 
@@ -562,7 +572,7 @@ using namespace std;
 
 		//the backtrack process, delete m1 from the current independent set
 		inCurrSolution[vertexOut] = 0;
-		tabuin[vertexOut] = iterationCtr + TABUL + randomInt(swappersLength + 2);
+		tabuin[vertexOut] = iterationCtr + TABUL + randomInt(swappersLength + 2, pr);
 		currSolutionLength--;
 		currSolution[indexOut] = currSolution[currSolutionLength];
 		swappers[swappersLength] = vertexOut;
@@ -604,7 +614,7 @@ using namespace std;
 		return 1;
 	}
 
-	int findMinWeightInCurrSolution()
+	int findMinWeightInCurrSolution(bool pr)
 	{
 		int i, k, tiedCounter;
 		int minWeight = 5000000;
@@ -626,15 +636,15 @@ using namespace std;
 
 		if (tiedCounter == 0)
 			return -1;
-		k = randomInt(tiedCounter);
+		k = randomInt(tiedCounter, pr);
 		k = tiedCandidateIndex[k];
 		return k;
 	}
 
-	int removeFromSolution()
+	int removeFromSolution(bool pr)
 	{
 		int i, minVertex, disconnectedVertex, minIndex, swapIndex, last;
-		minIndex = findMinWeightInCurrSolution();
+		minIndex = findMinWeightInCurrSolution(pr);
 		if (minIndex == -1)
 			return -1;
 		minVertex = currSolution[minIndex];
@@ -698,8 +708,8 @@ using namespace std;
 		int tmpMaxUnimproved = maxUnimproved;
 		while (iterationCtr < maxUnimproved)
 		{
-			bestToAdd = WSelectBestFromAdd();
-			bestToSwap = WSelectBestFromSwappy();
+			bestToAdd = WSelectBestFromAdd(pathRelinking);
+			bestToSwap = WSelectBestFromSwappy(pathRelinking);
 			if ((bestToAdd != -1) && (bestToSwap != -1))
 			{
 				addDelta = weights[adders[bestToAdd]];
@@ -715,7 +725,7 @@ using namespace std;
 				}
 				else
 				{
-					mysteriousL = doTheSwappy(bestToSwap);
+					mysteriousL = doTheSwappy(bestToSwap, pathRelinking);
 					if (localBestSolutionQuality == bestKnownSolutionQuality && !pathRelinking)
 						return localBestSolutionQuality;
 					iterationCtr++;
@@ -731,20 +741,20 @@ using namespace std;
 			}
 			else if ((bestToAdd == -1) && (bestToSwap != -1))
 			{
-				bestDeleteIndex = findMinWeightInCurrSolution();
+				bestDeleteIndex = findMinWeightInCurrSolution(pathRelinking);
 				bestToDelete = currSolution[bestDeleteIndex];
 				swapDelta = weights[swappers[bestToSwap]] - weights[swapBuddy[swappers[bestToSwap]]];
 				deleteDelta = -weights[bestToDelete];
 				if (swapDelta > deleteDelta)
 				{
-					mysteriousL = doTheSwappy(bestToSwap);
+					mysteriousL = doTheSwappy(bestToSwap, pathRelinking);
 					if (localBestSolutionQuality == bestKnownSolutionQuality && !pathRelinking)
 						return localBestSolutionQuality;
 					iterationCtr++;
 				}
 				else
 				{
-					k = removeFromSolution();
+					k = removeFromSolution(pathRelinking);
 					if (k == -1)
 						return localBestSolutionQuality;
 					iterationCtr++;
@@ -752,7 +762,7 @@ using namespace std;
 			}
 			else if ((bestToAdd == -1) && (bestToSwap == -1))
 			{
-				k = removeFromSolution();
+				k = removeFromSolution(pathRelinking);
 				if (k == -1)
 					return localBestSolutionQuality;
 				iterationCtr++;
@@ -941,7 +951,7 @@ using namespace std;
 			}
 		}
 
-		int randomIndex = randomInt(tiedPRSwapInsSize);
+		int randomIndex = randomInt(tiedPRSwapInsSize, true);
 		int swapInVertex = tiedPRSwapIns[randomIndex];
 		tempWorkingSolutionSize = 0;
 		for (int i = 0; i < workingSolutionSize; i++) {
@@ -1004,7 +1014,7 @@ using namespace std;
 			}
 		}
 
-		int randomIndex = randomInt(tiedPRSwapInsSize);
+		int randomIndex = randomInt(tiedPRSwapInsSize, true);
 		int swapInVertex = tiedPRSwapIns[randomIndex];
 		tempWorkingSolutionSize = 0;
 		for (int i = 0; i < workingSolutionSize; i++) {
@@ -1044,7 +1054,7 @@ using namespace std;
 	}
 
 	void moveWorkingTowardsGuidingRandom() {
-		int randomIndex = randomInt(guidingMinusWorkingSize);
+		int randomIndex = randomInt(guidingMinusWorkingSize, true);
 		int swapInVertex = guidingMinusWorking[randomIndex];
 		tempWorkingSolutionSize = 0;
 		for (int i = 0; i < workingSolutionSize; i++) {
@@ -1125,7 +1135,7 @@ using namespace std;
 				calculateDifferences();
 				int steps = 0;
 				while (guidingMinusWorkingSize > 0) {
-					moveWorkingTowardsGuidingGreatestDelta();
+					moveWorkingTowardsGuidingRandom();
 					setCurrentToWorking();
 					steps++;
 					int currQual = currSolutionQuality;
@@ -1197,7 +1207,7 @@ using namespace std;
 			cout << "Error : the user should input four parameters to run the program." << endl;
 			exit(0);
 		}
-		srand((unsigned)time(NULL));
+		srand(13);// (unsigned)time(NULL));
 		Initializing();
 		numVerticesTimesSizeOfInt = numVertices * sizeof(int);
 		cout << "finish reading data" << endl;
@@ -1206,7 +1216,7 @@ using namespace std;
 		cout << "len_time = " << maxIterationsDividedByMaxUnimproved << endl;
 		for (i = 0; i < 100; i++)
 		{
-			l = runHeuristic();
+ 			l = runHeuristic();
 			solutionQuality[i] = l;
 			len_used[i] = runBestLength;
 			time_used[i] = finishing_time - starting_time;

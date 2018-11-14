@@ -1,0 +1,17 @@
+declare -a arr=("brock200_1.clq 2821 200 4000"
+				"p_hat1500-3.clq 10321 200 4000" 
+                "p_hat500-1.clq 1231 200 4000" 
+                "p_hat500-2.clq 3920 200 4000"
+				"C500.9.clq 6955 200 4000"
+				"C1000.9.clq 9254 200 4000"
+				"C2000.9.clq 10999 200 4000"
+				"C4000.5.clq 2792 200 4000"
+				"keller6.clq 8062 200 4000"
+				"MANN_a81.clq 111128 200 4000"
+                )
+for i in "${arr[@]}"
+do
+	args=($i)
+	./research_rjl5319 ${args[0]} ${args[1]} ${args[2]} ${args[3]} <<< "c\n"
+	./research_mnts ${args[0]} ${args[1]} ${args[2]} ${args[3]}  <<< "c\n"
+done
