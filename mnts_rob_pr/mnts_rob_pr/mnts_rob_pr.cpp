@@ -118,6 +118,11 @@ using namespace std;
 
 	int * s2Contains;
 
+	long long totalOperations = 0;
+
+	long long pathLengthSum = 0;
+	long pathsTraversed = 0;
+
 	random_device rd;
 	mt19937 mersenneTwister(rd());
 
@@ -391,6 +396,7 @@ using namespace std;
 
 	int addToCurrSolution(int SelN)
 	{
+		totalOperations++;
 		int i, nIndex, m, n, last;
 
 		m = adders[SelN];
@@ -521,6 +527,7 @@ using namespace std;
 
 	int doTheSwappy(int SelN, bool pr)
 	{
+		totalOperations++;
 		int i, swapIndexIn, vertexIn, vertexOut, disconnectedVertex, lastElementOfSwappers, indexOut;
 
 		vertexIn = swappers[SelN];
@@ -643,6 +650,7 @@ using namespace std;
 
 	int removeFromSolution(bool pr)
 	{
+		totalOperations++;
 		int i, minVertex, disconnectedVertex, minIndex, swapIndex, last;
 		minIndex = findMinWeightInCurrSolution(pr);
 		if (minIndex == -1)
@@ -856,16 +864,24 @@ using namespace std;
 		double totalImprovement = 0;
 		double totalIterationsTaken = 0;
 		int numImproved = 0;
+		int successesAfterPr = 0;
+		double prAvg = 0;
 		for (int i = 0; i < 100; i++) {
 			totalImprovement += prSolutionQuality[i] - solutionQuality[i];
 			totalIterationsTaken += prIterations[i];
+			prAvg += prSolutionQuality[i];
 			if (prSolutionQuality[i] > solutionQuality[i]) {
 				numImproved++;
 			}
+			if (prSolutionQuality[i] >= bestKnownSolutionQuality) {
+				successesAfterPr++;
+			}
 		}
-
-		fprintf(fp, "Avg improvment = %10lf, Num Improved = %6d, Iterations/Improvement = %10lf", totalImprovement / 100.0, numImproved, totalIterationsTaken/totalImprovement);
-		
+		prAvg /= 100.0;
+		fprintf(fp, "Avg Sum: %10lf, Avg improvment = %10lf, Num Improved = %6d, Successes after pr = %6d, Iterations/Improvement = %10lf \n", prAvg,totalImprovement / 100.0, numImproved,
+			successesAfterPr,totalIterationsTaken/totalImprovement);
+		fprintf(fp, "Total number of operations : %6d Avg: %10lf Avg Path Length: %10lf \n", totalOperations, totalOperations / 100.0, (double)pathLengthSum / (double)pathsTraversed);
+		fprintf(fp, "\n");
 		fclose(fp);
 		return;
 	}
@@ -1126,6 +1142,7 @@ using namespace std;
 				if (j == i ) {
 					continue;
 				}
+				pathsTraversed++;
 				memset(guidingContains, false, sizeof(bool) * numVertices);
 				for (int m = 0; m < eliteSetSizes[j]; m++) {
 					guidingSolution[m] = eliteSet[j][m];
@@ -1135,9 +1152,10 @@ using namespace std;
 				calculateDifferences();
 				int steps = 0;
 				while (guidingMinusWorkingSize > 0) {
-					moveWorkingTowardsGuidingRandom();
+					moveWorkingTowardsGuidingGreatestDelta();
 					setCurrentToWorking();
 					steps++;
+					pathLengthSum++;
 					int currQual = currSolutionQuality;
 					int afterPr = performLocalSearch(maxUnimproved, true);
 					iterationsUsed += iterationCtr;
@@ -1207,7 +1225,7 @@ using namespace std;
 			cout << "Error : the user should input four parameters to run the program." << endl;
 			exit(0);
 		}
-		srand(13);// (unsigned)time(NULL));
+		srand((unsigned)time(NULL));
 		Initializing();
 		numVerticesTimesSizeOfInt = numVertices * sizeof(int);
 		cout << "finish reading data" << endl;
@@ -1227,7 +1245,8 @@ using namespace std;
 			prTimeUsed[i] = prFinishTime - prStartTime;
 			prIterations[i] = prIterationSolutionWasFoundOn;
 
-			cout << "i = " << i << " l = " << l << endl;
+			cout << "i = " << i << " l = " << l <<
+				"time: " << time_used[i] << " iterations: " << Iteration[i] <<endl;
 		}
 
 		printResultsToFile();
