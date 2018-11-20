@@ -120,8 +120,14 @@ using namespace std;
 
 	long long totalOperations = 0;
 
-	long long pathLengthSum = 0;
-	long pathsTraversed = 0;
+	unsigned int pathLengthSum = 0;
+	double pathsTraversed = 0;
+
+	int prStrategy = -1;
+	int nextStepMode = -1;
+
+	const int GREATEST_DELTA = 0, SMALLEST_CLIQUE = 1, RANDOM = 2;
+	const int FORWARD_AND_BACKWARD = 0, FORWARD = 1, BACKWARD = 2;
 
 	random_device rd;
 	mt19937 mersenneTwister(rd());
@@ -824,6 +830,8 @@ using namespace std;
 		outfilename[len + 4] = '\0';
 
 		fp = fopen(outfilename, "a+");
+
+
 		for (i = 0; i < 100; i++)
 		{
 			fprintf(fp, "sum = %6d, iter = %6d, len = %5d,  time = %8lf \n", solutionQuality[i], Iteration[i], len_used[i], time_used[i]);
@@ -878,9 +886,32 @@ using namespace std;
 			}
 		}
 		prAvg /= 100.0;
+
+		fprintf(fp, "Strategy: ");
+		if (prStrategy == FORWARD) {
+			fprintf(fp, " forward");
+		}
+		else if (prStrategy == BACKWARD) {
+			fprintf(fp, " backward");
+		}
+		else {
+			fprintf(fp, "forward-and-backward");
+		}
+		fprintf(fp, " NextStep: ");
+		if (nextStepMode == GREATEST_DELTA) {
+			fprintf(fp, " greatest delta");
+		}
+		else if (nextStepMode == SMALLEST_CLIQUE) {
+			fprintf(fp, " smallest clique");
+		}
+		else {
+			fprintf(fp, " random");
+		}
+		fprintf(fp, "\n");
+
 		fprintf(fp, "Avg Sum: %10lf, Avg improvment = %10lf, Num Improved = %6d, Successes after pr = %6d, Iterations/Improvement = %10lf \n", prAvg,totalImprovement / 100.0, numImproved,
 			successesAfterPr,totalIterationsTaken/totalImprovement);
-		fprintf(fp, "Total number of operations : %6d Avg: %10lf Avg Path Length: %10lf \n", totalOperations, totalOperations / 100.0, (double)pathLengthSum / (double)pathsTraversed);
+		fprintf(fp, "Total number of operations : %6lld, Avg: %10lf, Avg Path Length: %10lf \n", totalOperations, totalOperations / 100.0, pathLengthSum / pathsTraversed);
 		fprintf(fp, "\n");
 		fclose(fp);
 		return;
@@ -1142,6 +1173,12 @@ using namespace std;
 				if (j == i ) {
 					continue;
 				}
+				if (prStrategy == FORWARD && eliteSetWeights[i] > eliteSetWeights[j]) {
+					continue;
+				}
+				if (prStrategy == BACKWARD && eliteSetWeights[j] < eliteSetWeights[i]) {
+					continue;
+				}
 				pathsTraversed++;
 				memset(guidingContains, false, sizeof(bool) * numVertices);
 				for (int m = 0; m < eliteSetSizes[j]; m++) {
@@ -1152,7 +1189,15 @@ using namespace std;
 				calculateDifferences();
 				int steps = 0;
 				while (guidingMinusWorkingSize > 0) {
-					moveWorkingTowardsGuidingGreatestDelta();
+					if (nextStepMode == GREATEST_DELTA) {
+						moveWorkingTowardsGuidingGreatestDelta();
+					}
+					else if (nextStepMode == SMALLEST_CLIQUE) {
+						moveWorkingTowardsGuidingSmallestSize();
+					}
+					else {
+						moveWorkingTowardsGuidingRandom();
+					}
 					setCurrentToWorking();
 					steps++;
 					pathLengthSum++;
@@ -1213,16 +1258,21 @@ using namespace std;
 
 	int main(int argc, char **argv)
 	{
-		if (argc == 5)
+		if (argc == 7)
 		{
 			File_Name = argv[1];
 			bestKnownSolutionQuality = atoi(argv[2]);
 			weightMod = atoi(argv[3]);
 			maxUnimproved = atoi(argv[4]);
+			prStrategy = atoi(argv[5]);
+			nextStepMode = atoi(argv[6]);
 		}
 		else
 		{
-			cout << "Error : the user should input four parameters to run the program." << endl;
+			for (int i = 0; i < argc; i++) {
+				cout << argv[i] << "\n";
+			}
+			cout << "Error : the user should input six parameters to run the program." << endl;
 			exit(0);
 		}
 		srand((unsigned)time(NULL));
