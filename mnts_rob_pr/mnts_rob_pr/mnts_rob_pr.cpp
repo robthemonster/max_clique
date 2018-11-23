@@ -82,7 +82,7 @@ using namespace std;
 	double prStartTime = 0, prFinishTime = 0;
 	int prIterationSolutionWasFoundOn = 0;
 
-	const int ELITE_SET_CAPACITY = 25;
+	const int ELITE_SET_CAPACITY = 20;
 	int** eliteSet;
 	int eliteSetSize = 0;
 	int* eliteSetSizes;
